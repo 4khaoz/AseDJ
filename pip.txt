@@ -1,0 +1,4 @@
+python-vlc
+python-dotenv
+discord.py
+youtube-dl
