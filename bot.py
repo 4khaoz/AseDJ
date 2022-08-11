@@ -2,13 +2,12 @@
 
 from discord.ext import commands
 import discord
-import youtube_dl
+from yt_dlp import YoutubeDL
 import json
 import os
 from dotenv import load_dotenv
 import vlc
 import random
-import asyncio
 
 load_dotenv()
 
@@ -23,6 +22,10 @@ media_player = None
 event_manager = None
 channel = None
 
+current_video = None
+current_source = None
+next_video = None
+next_source = None
 
 #
 # Bot Events
@@ -59,14 +62,14 @@ async def add(ctx: commands.Context, arg: str):
     }
 
     # Extract Youtube Video Data
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+    with YoutubeDL(ydl_opts) as ydl:
         try:
             if "https://" not in arg[0]:
                 info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
             else:
                 info = ydl.extract_info(arg[0], download=False)
         except:
-            raise youtube_dl.utils.DownloadError('RIP')
+            print("Extracting Information failed")
 
     video_data = {
         "title": info['title'],
@@ -88,7 +91,7 @@ async def play(ctx: commands.Context, title: str = None):
         #media_player.play()
         pass
 
-    #playNext()
+    playNext()
 
 
 @bot.command()
@@ -96,7 +99,8 @@ async def stop(ctx: commands.Context):
     """
     Manual stop command
     """
-    pass
+    global media_player
+    media_player.stop()
 
 
 @bot.command()
@@ -135,18 +139,17 @@ async def playNext(video: dict = None):
     Plays the next video
     @param      video       If video is not given, get a random one
     """
-    if not video:
-        video = __get_random_item()
+    await __preload_videos(video)
 
     # Send Embed
     embed = discord.Embed(
-        title=f"Now playing {video['title']}",
-        description=f"{video['url']}"
+        title=f"Now playing {current_video['title']}",
+        description=f"{current_video['url']}"
     )
-    embed.set_thumbnail(url=video['thumbnail'])
-    await channel.send(embed=embed)
+    embed.set_thumbnail(url=current_video['thumbnail'])
+    #await channel.send(embed=embed)
 
-    __play(__get_source_from_url(video['url']))
+    __play(current_source)
 
 def __play(media: str):
     """
@@ -154,10 +157,31 @@ def __play(media: str):
     """
     global media_player
     global event_manager
+
     media_player = vlc.MediaPlayer(media)
     event_manager = media_player.event_manager()
     event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, __video_finished)
     media_player.play()
+
+async def __preload_videos(video: dict = None):
+    global current_video
+    global current_source
+    global next_video
+    global next_source
+
+    if next_video:
+        current_video = next_video
+        current_source = next_source
+    else:
+        current_video = __get_random_item()
+        current_source = __get_source_from_url(current_video['url'])
+
+    if video:
+        current_video = video
+        current_source = __get_source_from_url(video['url'])
+
+    next_video = __get_random_item()
+    next_source = __get_source_from_url(next_video['url'])
 
 
 def __video_finished(event):
@@ -181,6 +205,11 @@ def __get_source_from_url(url: str):
     """
     ydl_opts = {
         'format': 'bestaudio/best',
+        # 'postprocessors': [{
+        #     'key': 'FFmpegExtractAudio',
+        #     'preferredcodec': 'mp3',
+        #     'preferredquality': '192',
+        # }],
         'restrictfilenames': True,
         'noplaylist': True,
         'nocheckcertificate': True,
@@ -190,13 +219,13 @@ def __get_source_from_url(url: str):
     }
 
     # Extract Youtube Video Data
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+    with YoutubeDL(ydl_opts) as ydl:
         try:
             info = ydl.extract_info(url, download=False)
         except:
-            raise youtube_dl.utils.DownloadError('RIP')
+            print("Extracting Information failed")
 
-    return info['formats'][0]['url']
+    return info['url']
 
 
 # Start bot
