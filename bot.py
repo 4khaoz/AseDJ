@@ -141,13 +141,16 @@ async def playNext(video: dict = None):
     """
     await __preload_videos(video)
 
+    if current_video['url'].startswith('//'):
+        current_video['url'] = "https:" + current_video['url']
+
     # Send Embed
     embed = discord.Embed(
         title=f"Now playing {current_video['title']}",
         description=f"{current_video['url']}"
     )
     embed.set_thumbnail(url=current_video['thumbnail'])
-    #await channel.send(embed=embed)
+    await channel.send(embed=embed)
 
     __play(current_source)
 
