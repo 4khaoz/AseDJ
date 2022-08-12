@@ -2,3 +2,4 @@ python-vlc
 python-dotenv
 discord.py
 yt-dlp
+PyNaCl
