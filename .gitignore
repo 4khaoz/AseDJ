@@ -1,2 +1,9 @@
+# Ignore playlist.json
+playlist.json
+
 # Ignore .env-Files
 .env
+
+# Ignore virtual environment folders
+.venv
+venv
