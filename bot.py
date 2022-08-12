@@ -21,7 +21,7 @@ playlist = []
 media_player:   vlc.MediaPlayer     = None 
 event_manager:  vlc.EventManager    = None
 text_channel: discord.abc.GuildChannel = None
-voice_channel: discord.abc.GuildChannel = None
+voice_channel: discord.VoiceChannel = None
 voice_client: discord.VoiceClient = None
 
 current_video = None
