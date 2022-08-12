@@ -88,6 +88,14 @@ async def add(ctx: commands.Context, arg: str):
     playlist.append(video_data)
     __save_playlist()
 
+    # Send Embed    
+    embed = discord.Embed(
+        title=f"Added {video_data['title']} to playlist",
+        description=f"{video_data['url']}"
+    )
+    embed.set_thumbnail(url=video_data['thumbnail'])
+    await ctx.send(embed=embed)
+
 @bot.command()
 async def play(ctx: commands.Context, title: str = None):
     """
