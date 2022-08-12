@@ -20,7 +20,9 @@ bot = commands.Bot(
 playlist = []
 media_player:   vlc.MediaPlayer     = None 
 event_manager:  vlc.EventManager    = None
-channel = None
+text_channel: discord.abc.GuildChannel = None
+voice_channel: discord.abc.GuildChannel = None
+voice_client: discord.VoiceClient = None
 
 current_video = None
 current_source = None
@@ -34,10 +36,13 @@ next_source = None
 async def on_ready():
     print('Logged in')
 
-    global channel
-    channel = bot.get_channel(int(os.getenv('CHANNEL')))
+    global text_channel
+    global voice_channel
+    text_channel = bot.get_channel(int(os.getenv('CHANNEL')))
+    voice_channel = bot.get_channel(int(os.getenv('VOICE')))
     
     __setup_media_player()
+    await __setup_voice_client()
 
     __load_playlist()
     await playNext()
@@ -102,7 +107,9 @@ async def stop(ctx: commands.Context):
     Manual stop command
     """
     global media_player
+    global voice_client
     media_player.stop()
+    voice_client.stop()
 
 
 @bot.command()
@@ -112,6 +119,23 @@ async def volume(ctx: commands.Context, value: int):
     if value < 0:
         value = 0
     media_player.audio_set_volume(value)
+
+
+async def __setup_voice_client():
+    """
+    Connect Bot to music voice channel
+    """
+    global voice_client
+    if voice_client is None:
+        voice_client = await voice_channel.connect()
+
+    # Already connected and in the right channel
+    if voice_client.channel == voice_channel and voice_client.is_connected():
+        return
+
+    # Move Voice
+    if voice_client.is_connected():
+        await voice_client.move_to(voice_channel)
 
 
 def __setup_media_player():
@@ -164,7 +188,7 @@ async def playNext(video: dict = None):
         description=f"{current_video['url']}"
     )
     embed.set_thumbnail(url=current_video['thumbnail'])
-    await channel.send(embed=embed)
+    await text_channel.send(embed=embed)
 
     __play(current_source)
 
@@ -175,7 +199,19 @@ def __play(media: str):
     """    
     global media_player
     global event_manager
-    
+    global voice_client
+
+    FFMPEG_OPTS = {
+        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+        'options': '-vn'
+    }
+
+    voice_client.play(
+        discord.FFmpegPCMAudio(media, **FFMPEG_OPTS),
+        after=lambda e: print("Voice Client finished playing song")
+    )
+    voice_client.source = discord.PCMVolumeTransformer(voice_client.source, volume=0.5)
+
     # It'll interrupt the currently playing music
     media_player.set_mrl(media)
     media_player.play()
@@ -190,12 +226,8 @@ async def __preload_videos(video: dict = None):
         current_video = next_video
         current_source = next_source
     else:
-        current_video = __get_random_item()
+        current_video = video if video else __get_random_item()     # Python conditional operator
         current_source = __get_source_from_url(current_video['url'])
-
-    if video:
-        current_video = video
-        current_source = __get_source_from_url(video['url'])
 
     next_video = __get_random_item()
     next_source = __get_source_from_url(next_video['url'])
