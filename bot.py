@@ -18,7 +18,6 @@ bot = commands.Bot(
 
 # Variables
 playlist = []
-vlc_instance:   vlc.Instance        = None
 media_player:   vlc.MediaPlayer     = None 
 event_manager:  vlc.EventManager    = None
 channel = None
@@ -118,13 +117,11 @@ async def volume(ctx: commands.Context, value: int):
 def __setup_media_player():
     """
     Setup a new VLC media player instance and event manager
-    """
-    global vlc_instance
+    """    
     global media_player
     global event_manager
-
-    vlc_instance    = vlc.Instance()
-    media_player    = vlc_instance.media_player_new() 
+    
+    media_player    = vlc.MediaPlayer() 
     event_manager   = media_player.event_manager()
     event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, __video_finished)
 
@@ -175,13 +172,12 @@ async def playNext(video: dict = None):
 def __play(media: str):
     """
     @param      media       Youtube Audio Source URL
-    """
-    global vlc_instance
+    """    
     global media_player
     global event_manager
     
     # It'll interrupt the currently playing music
-    media_player.set_media(vlc_instance.media_new(media))
+    media_player.set_mrl(media)
     media_player.play()
 
 async def __preload_videos(video: dict = None):
@@ -253,10 +249,8 @@ def __get_source_from_url(url: str):
 try:
     bot.run(os.getenv('TOKEN'), bot=True)
 finally:
-    print("Cleaning up...")
-    # Clean up after ourselves
-    if vlc_instance is not None:
-        vlc_instance.release()
+    # Close the VLC media player
+    print("Cleaning up...")    
 
     if media_player is not None:
         media_player.release()
