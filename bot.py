@@ -18,8 +18,9 @@ bot = commands.Bot(
 
 # Variables
 playlist = []
-media_player = None
-event_manager = None
+vlc_instance:   vlc.Instance        = None
+media_player:   vlc.MediaPlayer     = None 
+event_manager:  vlc.EventManager    = None
 channel = None
 
 current_video = None
@@ -36,6 +37,8 @@ async def on_ready():
 
     global channel
     channel = bot.get_channel(int(os.getenv('CHANNEL')))
+    
+    __setup_media_player()
 
     __load_playlist()
     await playNext()
@@ -91,7 +94,7 @@ async def play(ctx: commands.Context, title: str = None):
         #media_player.play()
         pass
 
-    playNext()
+    await playNext()
 
 
 @bot.command()
@@ -110,6 +113,20 @@ async def volume(ctx: commands.Context, value: int):
     if value < 0:
         value = 0
     media_player.audio_set_volume(value)
+
+
+def __setup_media_player():
+    """
+    Setup a new VLC media player instance and event manager
+    """
+    global vlc_instance
+    global media_player
+    global event_manager
+
+    vlc_instance    = vlc.Instance()
+    media_player    = vlc_instance.media_player_new() 
+    event_manager   = media_player.event_manager()
+    event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, __video_finished)
 
 
 def __load_playlist():
@@ -144,7 +161,7 @@ async def playNext(video: dict = None):
     if current_video['url'].startswith('//'):
         current_video['url'] = "https:" + current_video['url']
 
-    # Send Embed
+    # Send Embed    
     embed = discord.Embed(
         title=f"Now playing {current_video['title']}",
         description=f"{current_video['url']}"
@@ -154,16 +171,17 @@ async def playNext(video: dict = None):
 
     __play(current_source)
 
+
 def __play(media: str):
     """
     @param      media       Youtube Audio Source URL
     """
+    global vlc_instance
     global media_player
     global event_manager
-
-    media_player = vlc.MediaPlayer(media)
-    event_manager = media_player.event_manager()
-    event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, __video_finished)
+    
+    # It'll interrupt the currently playing music
+    media_player.set_media(vlc_instance.media_new(media))
     media_player.play()
 
 async def __preload_videos(video: dict = None):
@@ -232,4 +250,13 @@ def __get_source_from_url(url: str):
 
 
 # Start bot
-bot.run(os.getenv('TOKEN'), bot=True)
+try:
+    bot.run(os.getenv('TOKEN'), bot=True)
+finally:
+    print("Cleaning up...")
+    # Clean up after ourselves
+    if vlc_instance is not None:
+        vlc_instance.release()
+
+    if media_player is not None:
+        media_player.release()
