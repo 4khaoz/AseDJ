@@ -17,7 +17,8 @@ bot = commands.Bot(
 )
 
 # Variables
-playlist = []
+playlist = []   # Static List where newly added videos are appended 
+queue = []      # Shuffled list to play
 media_player:   vlc.MediaPlayer     = None 
 event_manager:  vlc.EventManager    = None
 text_channel: discord.abc.GuildChannel = None
@@ -84,8 +85,13 @@ async def add(ctx: commands.Context, arg: str):
         "thumbnail": info['thumbnail']
     }
 
+    if __video_exists(info['title']):
+        await ctx.send("Video is already in playlist")
+        return
+
     global playlist
     playlist.append(video_data)
+    queue.insert(0, video_data)
     __save_playlist()
 
     # Send Embed    
@@ -97,15 +103,10 @@ async def add(ctx: commands.Context, arg: str):
     await ctx.send(embed=embed)
 
 @bot.command()
-async def play(ctx: commands.Context, title: str = None):
+async def play(ctx: commands.Context):
     """
     Manual play command
     """
-    if title:
-        # TODO: find song to play by title
-        #media_player.play()
-        pass
-
     await playNext()
 
 
@@ -163,11 +164,14 @@ def __load_playlist():
     Load playlist-data from JSON-File
     """
     global playlist
+    global queue
 
     with open('playlist.json') as file:
         try:
             playlist = json.load(file)
+            queue = random.sample(playlist)
             print("Playlist loaded from playlist.json")
+
         except json.JSONDecodeError:
             print("Playlist could not be loaded")
 
@@ -247,12 +251,10 @@ def __video_finished(event):
     bot.loop.create_task(playNext())
 
 
-def __get_random_item():
-    global playlist
-
-    if playlist:
-        return random.choice(playlist)
-    return None
+def __get_random_item(index: int):
+    if not queue:
+        __load_queue()
+    return queue.pop(0)
 
 
 def __get_source_from_url(url: str):
@@ -284,6 +286,15 @@ def __get_source_from_url(url: str):
 
     return info['url']
 
+
+def __load_queue():
+    global queue
+    queue = random.sample(playlist)
+
+
+def __video_exists(video_title):
+    return any(video_title in video_data['title'] for video_data in playlist)
+    
 
 # Start bot
 try:
