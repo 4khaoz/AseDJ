@@ -4,6 +4,7 @@ from threading import Thread
 from discord.ext import commands
 import discord
 from yt_dlp import YoutubeDL
+import json
 import os
 from dotenv import load_dotenv
 import vlc
@@ -131,11 +132,11 @@ async def calibrate(ctx: commands.Context):
 
 def calibrate_task():
     i = 0
-    length = len(playlist)
+    length = len(playlist.items)
 
     imported_playlist = []
 
-    for video in playlist:
+    for video in playlist.items:
         print(f"Calibrating... {i} / {length}")
         video_data = __get_video_data_with_ytdl(video['url'])
 
