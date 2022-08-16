@@ -73,35 +73,10 @@ async def add(ctx: commands.Context, *arg: str):
     @param      ctx     Discord Text-Channel in which command was used
     @param      arg     Youtube-Link or Title (YT searches automatically and returns first video found)
     """
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'restrictfilenames': True,
-        'noplaylist': True,
-        'nocheckcertificate': True,
-        'ignoreerrors': False,
-        'logtostderr': False,
-        'no_warnings': True,
-    }
-
-    # Extract Youtube Video Data
-    with YoutubeDL(ydl_opts) as ydl:
-        try:
-            if "https://" not in arg[0]:
-                info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
-            else:
-                info = ydl.extract_info(arg[0], download=False)
-        except:
-            print("Extracting Information failed")
-
-    video_data = {
-        "id": info['id'],
-        "title": info['title'],
-        "url": f"https://www.youtube.com/watch?v={info['id']}",
-        "thumbnail": info['thumbnail']
-    }
+    video_data = __get_video_data_with_ytdl(arg)
 
     global playlist
-    if playlist.item_exists(video_title=info['title']):
+    if playlist.item_exists(video_title=video_data['title']):
         await ctx.send("Video is already in playlist")
         return
 
@@ -162,29 +137,7 @@ def calibrate_task():
 
     for video in playlist:
         print(f"Calibrating... {i} / {length}")
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'restrictfilenames': True,
-            'noplaylist': True,
-            'nocheckcertificate': True,
-            'ignoreerrors': False,
-            'logtostderr': False,
-            'no_warnings': True,
-        }
-
-        # Extract Youtube Video Data
-        with YoutubeDL(ydl_opts) as ydl:
-            try:
-                info = ydl.extract_info(video['url'], download=False)
-            except:
-                print("Extracting Information failed")
-
-        video_data = {
-            "id": info['id'],
-            "title": info['title'],
-            "url": f"https://www.youtube.com/watch?v={info['id']}",
-            "thumbnail": info['thumbnail']
-        }
+        video_data = __get_video_data_with_ytdl(video['url'])
 
         imported_playlist.append(video_data)
         i += 1
@@ -312,11 +265,6 @@ def __get_source_from_url(url: str):
     """
     ydl_opts = {
         'format': 'bestaudio/best',
-        # 'postprocessors': [{
-        #     'key': 'FFmpegExtractAudio',
-        #     'preferredcodec': 'mp3',
-        #     'preferredquality': '192',
-        # }],
         'restrictfilenames': True,
         'noplaylist': True,
         'nocheckcertificate': True,
@@ -333,7 +281,35 @@ def __get_source_from_url(url: str):
             print("Extracting Information failed")
 
     return info['url']
-    
+
+
+def __get_video_data_with_ytdl(*arg: str) -> dict:
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'restrictfilenames': True,
+        'noplaylist': True,
+        'nocheckcertificate': True,
+        'ignoreerrors': False,
+        'logtostderr': False,
+        'no_warnings': True,
+    }
+
+    # Extract Youtube Video Data
+    with YoutubeDL(ydl_opts) as ydl:
+        try:
+            if "https://" not in arg[0]:
+                info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
+            else:
+                info = ydl.extract_info(arg[0], download=False)
+        except:
+            print("Extracting Information failed")
+
+    return {
+        "id": info['id'],
+        "title": info['title'],
+        "url": f"https://www.youtube.com/watch?v={info['id']}",
+        "thumbnail": info['thumbnail']
+    }
 
 # Start bot
 try:
