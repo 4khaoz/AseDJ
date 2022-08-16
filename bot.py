@@ -13,7 +13,7 @@ load_dotenv()
 
 # Bot Instance
 bot = commands.Bot(
-    command_prefix='$'
+    command_prefix=os.getenv('COMMAND_PREFIX', default='$')
 )
 
 # Variables
