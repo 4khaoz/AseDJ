@@ -67,7 +67,7 @@ async def on_ready():
 # Bot Commands
 #
 @bot.command()
-async def add(ctx: commands.Context, arg: str):
+async def add(ctx: commands.Context, *arg: str):
     """
     Add video to playlist
     @param      ctx     Discord Text-Channel in which command was used
@@ -231,7 +231,7 @@ async def playNext(video: dict = None):
     Plays the next video
     @param      video       If video is not given, get a random one
     """
-    await __preload_videos(video)
+    __preload_videos(video)
 
     if current_video['url'].startswith('//'):
         current_video['url'] = "https:" + current_video['url']
@@ -272,7 +272,9 @@ def __play(media: str):
     media_player.set_mrl(media)
     media_player.play()
 
-async def __preload_videos(video: dict = None):
+
+def __preload_videos(video: dict = None):
+    global playlist
     global current_video
     global current_source
     global next_video
@@ -282,10 +284,18 @@ async def __preload_videos(video: dict = None):
         current_video = next_video
         current_source = next_source
     else:
-        current_video = video if video else __get_random_item()     # Python conditional operator
+        current_video = video if video else playlist.get_random_item()     # Python conditional operator
         current_source = __get_source_from_url(current_video['url'])
 
-    next_video = __get_random_item()
+    bot.loop.create_task(__preload_next_video())
+
+
+async def __preload_next_video():
+    global playlist
+    global next_video
+    global next_source
+
+    next_video = playlist.get_random_item()
     next_source = __get_source_from_url(next_video['url'])
 
 
