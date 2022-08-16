@@ -186,7 +186,7 @@ def __load_playlist():
     with open('playlist.json') as file:
         try:
             playlist = json.load(file)
-            queue = random.sample(playlist)
+            queue = random.sample(playlist, len(playlist))
             print("Playlist loaded from playlist.json")
 
         except json.JSONDecodeError:
@@ -270,7 +270,7 @@ def __video_finished(event):
     bot.loop.create_task(playNext())
 
 
-def __get_random_item(index: int):
+def __get_random_item():
     if not queue:
         __load_queue()
     return queue.pop(0)
@@ -308,7 +308,7 @@ def __get_source_from_url(url: str):
 
 def __load_queue():
     global queue
-    queue = random.sample(playlist)
+    queue = random.sample(playlist, len(playlist))
 
 
 def __video_exists(video_title):
