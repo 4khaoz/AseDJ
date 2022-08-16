@@ -4,11 +4,12 @@ from threading import Thread
 from discord.ext import commands
 import discord
 from yt_dlp import YoutubeDL
-import json
 import os
 from dotenv import load_dotenv
 import vlc
-import random
+
+from talala.playlist import Playlist
+
 
 load_dotenv()
 
@@ -18,8 +19,7 @@ bot = commands.Bot(
 )
 
 # Variables
-playlist = []   # Static List where newly added videos are appended 
-queue = []      # Shuffled list to play
+playlist:       Playlist            = None 
 media_player:   vlc.MediaPlayer     = None 
 event_manager:  vlc.EventManager    = None
 text_channel: discord.abc.GuildChannel = None
@@ -40,6 +40,7 @@ async def on_ready():
 
     global text_channel
     global voice_channel
+    global playlist
 
     # Get text channel for event logging
     event_channel_id = os.getenv('CHANNEL')
@@ -58,7 +59,7 @@ async def on_ready():
     __setup_media_player()
     await __setup_voice_client()
 
-    __load_playlist()
+    playlist = Playlist.load('playlist.json')
     await playNext()
 
 
@@ -99,14 +100,13 @@ async def add(ctx: commands.Context, arg: str):
         "thumbnail": info['thumbnail']
     }
 
-    if __video_exists(info['title']):
+    global playlist
+    if playlist.item_exists(video_title=info['title']):
         await ctx.send("Video is already in playlist")
         return
 
-    global playlist
-    playlist.append(video_data)
-    queue.insert(0, video_data)
-    __save_playlist()
+    playlist.add_item(video_data)
+    playlist.save()
 
     # Send Embed    
     embed = discord.Embed(
@@ -226,31 +226,6 @@ def __setup_media_player():
     event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, __video_finished)
 
 
-def __load_playlist():
-    """
-    Load playlist-data from JSON-File
-    """
-    global playlist
-    global queue
-
-    with open('playlist.json') as file:
-        try:
-            playlist = json.load(file)
-            queue = random.sample(playlist, len(playlist))
-            print("Playlist loaded from playlist.json")
-
-        except json.JSONDecodeError:
-            print("Playlist could not be loaded")
-
-
-def __save_playlist():
-    """
-    Save playlist-data to JSON-File
-    """
-    with open('playlist.json', 'w') as file:
-        json.dump(playlist, file, indent=4)
-
-
 async def playNext(video: dict = None):
     """
     Plays the next video
@@ -320,12 +295,6 @@ def __video_finished(event):
     bot.loop.create_task(playNext())
 
 
-def __get_random_item():
-    if not queue:
-        __load_queue()
-    return queue.pop(0)
-
-
 def __get_source_from_url(url: str):
     """
     Retrieves the audio source from Youtube URL with yt-dl
@@ -354,15 +323,6 @@ def __get_source_from_url(url: str):
             print("Extracting Information failed")
 
     return info['url']
-
-
-def __load_queue():
-    global queue
-    queue = random.sample(playlist, len(playlist))
-
-
-def __video_exists(video_title):
-    return any(video_title in video_data['title'] for video_data in playlist)
     
 
 # Start bot
