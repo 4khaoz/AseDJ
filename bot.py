@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from threading import Thread
 from discord.ext import commands
 import discord
 from yt_dlp import YoutubeDL
@@ -92,6 +93,7 @@ async def add(ctx: commands.Context, arg: str):
             print("Extracting Information failed")
 
     video_data = {
+        "id": info['id'],
         "title": info['title'],
         "url": f"https://www.youtube.com/watch?v={info['id']}",
         "thumbnail": info['thumbnail']
@@ -141,6 +143,54 @@ async def volume(ctx: commands.Context, value: int):
         value = 0
     media_player.audio_set_volume(value)
 
+
+@bot.command()
+async def calibrate(ctx: commands.Context):
+    thread = Thread(target=calibrate_task, args=(ctx))
+    await ctx.send("Starting Calibration...")
+    thread.start()
+    await ctx.send("Calibrating...")
+    thread.join()
+    await ctx.send("Finished Calibration")
+
+
+async def calibrate_task(ctx: commands.Context):
+    i = 0
+    length = len(playlist)
+
+    imported_playlist = []
+
+    for video in playlist:
+        print(f"Calibrating... {i} / {length}")
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'restrictfilenames': True,
+            'noplaylist': True,
+            'nocheckcertificate': True,
+            'ignoreerrors': False,
+            'logtostderr': False,
+            'no_warnings': True,
+        }
+
+        # Extract Youtube Video Data
+        with YoutubeDL(ydl_opts) as ydl:
+            try:
+                info = ydl.extract_info(video['id'], download=False)
+            except:
+                print("Extracting Information failed")
+
+        video_data = {
+            "id": info['id'],
+            "title": info['title'],
+            "url": f"https://www.youtube.com/watch?v={info['id']}",
+            "thumbnail": info['thumbnail']
+        }
+
+        imported_playlist.append(video_data)
+        i += 1
+    
+    with open('new_playlist.json', 'w') as file:
+        json.dump(imported_playlist, file, indent=4)
 
 async def __setup_voice_client():
     """
