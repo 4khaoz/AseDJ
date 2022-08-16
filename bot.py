@@ -146,7 +146,7 @@ async def volume(ctx: commands.Context, value: int):
 
 @bot.command()
 async def calibrate(ctx: commands.Context):
-    thread = Thread(target=calibrate_task, args=(ctx))
+    thread = Thread(target=calibrate_task)
     await ctx.send("Starting Calibration...")
     thread.start()
     await ctx.send("Calibrating...")
@@ -154,7 +154,7 @@ async def calibrate(ctx: commands.Context):
     await ctx.send("Finished Calibration")
 
 
-async def calibrate_task(ctx: commands.Context):
+def calibrate_task():
     i = 0
     length = len(playlist)
 
@@ -175,7 +175,7 @@ async def calibrate_task(ctx: commands.Context):
         # Extract Youtube Video Data
         with YoutubeDL(ydl_opts) as ydl:
             try:
-                info = ydl.extract_info(video['id'], download=False)
+                info = ydl.extract_info(video['url'], download=False)
             except:
                 print("Extracting Information failed")
 
