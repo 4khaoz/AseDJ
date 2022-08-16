@@ -39,8 +39,20 @@ async def on_ready():
 
     global text_channel
     global voice_channel
-    text_channel = bot.get_channel(int(os.getenv('CHANNEL')))
-    voice_channel = bot.get_channel(int(os.getenv('VOICE')))
+
+    # Get text channel for event logging
+    event_channel_id = os.getenv('CHANNEL')
+    if event_channel_id is not None:
+        text_channel = bot.get_channel(event_channel_id)
+    else:
+        print("Will not output events on Discord. No text channel ID specified.")
+    
+    # Get voice channel for music streaming
+    voice_channel_id = os.getenv('VOICE')
+    if voice_channel_id is not None:
+        voice_channel = bot.get_channel(voice_channel_id)
+    else:
+        print("Will not stream music on Discord. No voice channel ID specified.")
     
     __setup_media_player()
     await __setup_voice_client()
@@ -135,6 +147,11 @@ async def __setup_voice_client():
     Connect Bot to music voice channel
     """
     global voice_client
+    global voice_channel
+    
+    if voice_channel is None:
+        return
+
     if voice_client is None:
         voice_client = await voice_channel.connect()
 
@@ -195,12 +212,13 @@ async def playNext(video: dict = None):
         current_video['url'] = "https:" + current_video['url']
 
     # Send Embed    
-    embed = discord.Embed(
-        title=f"Now playing {current_video['title']}",
-        description=f"{current_video['url']}"
-    )
-    embed.set_thumbnail(url=current_video['thumbnail'])
-    await text_channel.send(embed=embed)
+    if text_channel is not None:
+        embed = discord.Embed(
+            title=f"Now playing {current_video['title']}",
+            description=f"{current_video['url']}"
+        )
+        embed.set_thumbnail(url=current_video['thumbnail'])
+        await text_channel.send(embed=embed)
 
     __play(current_source)
 
@@ -218,11 +236,12 @@ def __play(media: str):
         'options': '-vn'
     }
 
-    voice_client.play(
-        discord.FFmpegPCMAudio(media, **FFMPEG_OPTS),
-        after=lambda e: print("Voice Client finished playing song")
-    )
-    voice_client.source = discord.PCMVolumeTransformer(voice_client.source, volume=0.5)
+    if voice_client is not None:
+        voice_client.play(
+            discord.FFmpegPCMAudio(media, **FFMPEG_OPTS),
+            after=lambda e: print("Voice Client finished playing song")
+        )
+        voice_client.source = discord.PCMVolumeTransformer(voice_client.source, volume=0.5)
 
     # It'll interrupt the currently playing music
     media_player.set_mrl(media)
