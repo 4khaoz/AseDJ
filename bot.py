@@ -45,15 +45,15 @@ async def on_ready():
 
     # Get text channel for event logging
     event_channel_id = os.getenv('CHANNEL')
-    if event_channel_id is not None:
-        text_channel = bot.get_channel(event_channel_id)
+    if event_channel_id:
+        text_channel = bot.get_channel(int(event_channel_id))
     else:
         print("Will not output events on Discord. No text channel ID specified.")
     
     # Get voice channel for music streaming
     voice_channel_id = os.getenv('VOICE')
-    if voice_channel_id is not None:
-        voice_channel = bot.get_channel(voice_channel_id)
+    if voice_channel_id:
+        voice_channel = bot.get_channel(int(voice_channel_id))
     else:
         print("Will not stream music on Discord. No voice channel ID specified.")
     
@@ -191,7 +191,7 @@ async def playNext(video: dict = None):
         current_video['url'] = "https:" + current_video['url']
 
     # Send Embed    
-    if text_channel is not None:
+    if text_channel:
         embed = discord.Embed(
             title=f"Now playing {current_video['title']}",
             description=f"{current_video['url']}"
@@ -215,7 +215,7 @@ def __play(media: str):
         'options': '-vn'
     }
 
-    if voice_client is not None:
+    if voice_client:
         voice_client.play(
             discord.FFmpegPCMAudio(media, **FFMPEG_OPTS),
             after=lambda e: print("Voice Client finished playing song")
@@ -319,5 +319,5 @@ finally:
     # Close the VLC media player
     print("Cleaning up...")    
 
-    if media_player is not None:
+    if media_player:
         media_player.release()
