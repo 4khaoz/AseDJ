@@ -135,16 +135,23 @@ def calibrate_task():
     length = len(playlist.items)
 
     imported_playlist = []
+    failed_to_import = []
 
     for video in playlist.items:
         print(f"Calibrating... {i} / {length}")
         video_data = __get_video_data_with_ytdl(video['url'])
 
-        imported_playlist.append(video_data)
+        if video_data['failed']:
+            failed_to_import.append(video_data)
+        else:
+            imported_playlist.append(video_data)
         i += 1
     
     with open('new_playlist.json', 'w') as file:
         json.dump(imported_playlist, file, indent=4)
+
+    with open('failed_to_import.json', 'w') as file:
+        json.dump(failed_to_import, file, indent=4)
 
 async def __setup_voice_client():
     """
@@ -302,8 +309,9 @@ def __get_video_data_with_ytdl(*arg: str) -> dict:
                 info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
             else:
                 info = ydl.extract_info(arg[0], download=False)
-        except:
+        except Exception:
             print("Extracting Information failed")
+            return {"failed": True, "url": arg}
 
     return {
         "id": info['id'],
