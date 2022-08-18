@@ -68,6 +68,13 @@ async def on_ready():
 # Bot Commands
 #
 @bot.command()
+async def connect(ctx: commands.Context):
+    """
+    Manually connect bot to voice channel if e.g. disconnected
+    """
+    await __setup_voice_client()
+
+@bot.command()
 async def add(ctx: commands.Context, *arg: str):
     """
     Add video to playlist
@@ -91,6 +98,53 @@ async def add(ctx: commands.Context, *arg: str):
     )
     embed.set_thumbnail(url=video_data['thumbnail'])
     await ctx.send(embed=embed)
+
+#
+# TODO: Cleanup and refactor mark, unmark and meme command
+#
+
+@bot.command()
+async def mark(ctx: commands.Context, key: str, *arg: str):
+    try:
+        with open('marked.json', 'r') as file:
+            marked = json.load(file)
+    except:
+        print("marked.json could not be loaded")
+        marked = {}
+    
+    if key in marked:
+        await ctx.send("Key already exists. Unmark first or use another.")
+        return
+
+    marked[key] = __get_video_data_with_ytdl(arg)
+
+    with open('marked.json', 'w') as file:
+        json.dump(marked, file, indent=4)
+
+    await ctx.send("Key applied")
+
+
+@bot.command()
+async def unmark(ctx: commands.Context, key: str):
+    await ctx.send(f"The key '{key}' has been freed")
+
+@bot.command()
+async def meme(ctx: commands.Context, key: str):
+    try:
+        with open('marked.json', 'r') as file:
+            marked = json.load(file)
+    except:
+        print("marked.json could not be loaded")
+        return
+
+    if key in marked:
+        media_player.stop()
+        voice_client.stop()
+        await playNext(marked[key])
+        await ctx.send("Ehehehe")
+    else:
+        await ctx.send("Key not found")
+
 
 @bot.command()
 async def play(ctx: commands.Context):
@@ -241,11 +295,14 @@ def __preload_videos(video: dict = None):
     global next_video
     global next_source
 
-    if next_video:
+    if video:
+        current_video = video
+        current_source = __get_source_from_url(current_video['url'])
+    elif next_video:
         current_video = next_video
         current_source = next_source
     else:
-        current_video = video if video else playlist.get_random_item()     # Python conditional operator
+        current_video = playlist.get_random_item()     # Python conditional operator
         current_source = __get_source_from_url(current_video['url'])
 
     bot.loop.create_task(__preload_next_video())
