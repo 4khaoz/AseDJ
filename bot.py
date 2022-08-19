@@ -195,7 +195,7 @@ def calibrate_task():
         print(f"Calibrating... {i} / {length}")
         video_data = __get_video_data_with_ytdl(video['url'])
 
-        if video_data['failed']:
+        if 'failed' in video_data:
             failed_to_import.append(video_data)
         else:
             imported_playlist.append(video_data)
