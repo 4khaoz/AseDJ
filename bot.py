@@ -353,7 +353,7 @@ def __get_source_from_url(url: str):
     return info['url']
 
 
-def __get_video_data_with_ytdl(arg: str) -> dict:
+def __get_video_data_with_ytdl(*arg: str) -> dict:
     ydl_opts = {
         'format': 'bestaudio/best',
         'restrictfilenames': True,
@@ -367,7 +367,7 @@ def __get_video_data_with_ytdl(arg: str) -> dict:
     # Extract Youtube Video Data
     with YoutubeDL(ydl_opts) as ydl:
         try:
-            if validators.url(arg[0]):
+            if validators.url(*arg[0]):
                 info = ydl.extract_info(arg[0], download=False)
             else:
                 info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
