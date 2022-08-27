@@ -8,6 +8,7 @@ import json
 import os
 from dotenv import load_dotenv
 import vlc
+import validators
 
 from talala.playlist import Playlist
 
@@ -83,8 +84,12 @@ async def add(ctx: commands.Context, *arg: str):
     """
     video_data = __get_video_data_with_ytdl(arg)
 
+    if "failed" in video_data:
+        await ctx.send("Failed to retrieve Video data")
+        return
+
     global playlist
-    if playlist.item_exists(video_title=video_data['title']):
+    if playlist.item_exists(video_id=video_data['id']):
         await ctx.send("Video is already in playlist")
         return
 
@@ -348,7 +353,7 @@ def __get_source_from_url(url: str):
     return info['url']
 
 
-def __get_video_data_with_ytdl(*arg: str) -> dict:
+def __get_video_data_with_ytdl(arg: str) -> dict:
     ydl_opts = {
         'format': 'bestaudio/best',
         'restrictfilenames': True,
@@ -362,10 +367,10 @@ def __get_video_data_with_ytdl(*arg: str) -> dict:
     # Extract Youtube Video Data
     with YoutubeDL(ydl_opts) as ydl:
         try:
-            if "https://" not in arg[0]:
-                info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
-            else:
+            if validators.url(arg[0]):
                 info = ydl.extract_info(arg[0], download=False)
+            else:
+                info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
         except Exception:
             print("Extracting Information failed")
             return {"failed": True, "url": arg}

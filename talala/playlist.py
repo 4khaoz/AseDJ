@@ -39,12 +39,12 @@ class Playlist:
             self.__queue.insert(0, item)
 
 
-    def item_exists(self, video_title: str) -> bool:
+    def item_exists(self, video_id: str) -> bool:
         """
         Get random item from playlist
-        @param video_title The title of the video to check against the videos in the playlist
+        @param video_id The ID of the video to check against the videos in the playlist
         """
-        return any(video_title in video_data['title'] for video_data in self.items)
+        return any(video_id in video_data['id'] for video_data in self.items)
 
 
     def get_random_item(self) -> dict:
