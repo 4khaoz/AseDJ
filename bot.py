@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
-from threading import Thread
 from discord.ext import commands
 import discord
-from yt_dlp import YoutubeDL
 import json
 import os
 from dotenv import load_dotenv
 import vlc
 import validators
 
+from talala import yt_utils
 from talala.playlist import Playlist
 
 
@@ -82,7 +81,7 @@ async def add(ctx: commands.Context, *arg: str):
     @param      ctx     Discord Text-Channel in which command was used
     @param      arg     Youtube-Link or Title (YT searches automatically and returns first video found)
     """
-    video_data = __get_video_data_with_ytdl(arg)
+    video_data = yt_utils.get_video_data_with_ytdl(arg)
 
     if "failed" in video_data:
         await ctx.send("Failed to retrieve Video data")
@@ -121,7 +120,7 @@ async def mark(ctx: commands.Context, key: str, *arg: str):
         await ctx.send("Key already exists. Unmark first or use another.")
         return
 
-    marked[key] = __get_video_data_with_ytdl(arg)
+    marked[key] = yt_utils.get_video_data_with_ytdl(arg)
 
     with open('marked.json', 'w') as file:
         json.dump(marked, file, indent=4)
@@ -302,13 +301,13 @@ def __preload_videos(video: dict = None):
 
     if video:
         current_video = video
-        current_source = __get_source_from_url(current_video['url'])
+        current_source = yt_utils.get_source_from_url(current_video['url'])
     elif next_video:
         current_video = next_video
         current_source = next_source
     else:
         current_video = playlist.get_random_item()     # Python conditional operator
-        current_source = __get_source_from_url(current_video['url'])
+        current_source = yt_utils.get_source_from_url(current_video['url'])
 
     bot.loop.create_task(__preload_next_video())
 
@@ -319,7 +318,7 @@ async def __preload_next_video():
     global next_source
 
     next_video = playlist.get_random_item()
-    next_source = __get_source_from_url(next_video['url'])
+    next_source = yt_utils.get_source_from_url(next_video['url'])
 
 
 def __video_finished(event):
@@ -327,60 +326,6 @@ def __video_finished(event):
     
     bot.loop.create_task(playNext())
 
-
-def __get_source_from_url(url: str):
-    """
-    Retrieves the audio source from Youtube URL with yt-dl
-    @param  url     Youtube-URL to video
-    """
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'restrictfilenames': True,
-        'noplaylist': True,
-        'nocheckcertificate': True,
-        'ignoreerrors': False,
-        'logtostderr': False,
-        'no_warnings': True,
-    }
-
-    # Extract Youtube Video Data
-    with YoutubeDL(ydl_opts) as ydl:
-        try:
-            info = ydl.extract_info(url, download=False)
-        except:
-            print("Extracting Information failed")
-
-    return info['url']
-
-
-def __get_video_data_with_ytdl(*arg: str) -> dict:
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'restrictfilenames': True,
-        'noplaylist': True,
-        'nocheckcertificate': True,
-        'ignoreerrors': False,
-        'logtostderr': False,
-        'no_warnings': True,
-    }
-
-    # Extract Youtube Video Data
-    with YoutubeDL(ydl_opts) as ydl:
-        try:
-            if validators.url(*arg[0]):
-                info = ydl.extract_info(arg[0], download=False)
-            else:
-                info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
-        except Exception:
-            print("Extracting Information failed")
-            return {"failed": True, "url": arg}
-
-    return {
-        "id": info['id'],
-        "title": info['title'],
-        "url": f"https://www.youtube.com/watch?v={info['id']}",
-        "thumbnail": info['thumbnail']
-    }
 
 # Start bot
 try:
