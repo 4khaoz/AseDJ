@@ -1,7 +1,7 @@
 from yt_dlp import YoutubeDL
 import validators
 
-def get_video_data_with_ytdl(*arg: str) -> dict:
+def get_video_data_with_ytdl(arg: tuple[str, ...]) -> dict:
     ydl_opts = {
         'format': 'bestaudio/best',
         'restrictfilenames': True,
@@ -19,8 +19,8 @@ def get_video_data_with_ytdl(*arg: str) -> dict:
                 info = ydl.extract_info(arg[0], download=False)
             else:
                 info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
-        except Exception:
-            print("Extracting Information failed")
+        except Exception as e:
+            print(f"Extracting Information failed: {e}")
             return {"failed": True, "url": arg}
 
     return {
