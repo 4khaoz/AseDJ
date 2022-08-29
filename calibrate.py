@@ -2,7 +2,7 @@ import json
 from talala import yt_utils
 from talala.playlist import Playlist
 
-if __name__ == "__main___":
+if __name__ == "__main__":
     print("Starting Calibration...")
 
     playlist = Playlist.load('playlist.json')
@@ -15,7 +15,12 @@ if __name__ == "__main___":
 
     for video in playlist.items:
         print(f"Calibrating... {i} / {length}")
-        video_data = yt_utils.get_video_data_with_ytdl(video['url'])
+
+        url = video['url']
+        if url.startswith('//'):
+            url = f"https:{url}"
+                
+        video_data = yt_utils.get_video_data_with_ytdl(url)
 
         if 'failed' in video_data:
             failed_to_import.append(video_data)

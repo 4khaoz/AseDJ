@@ -6,7 +6,6 @@ import json
 import os
 from dotenv import load_dotenv
 import vlc
-import validators
 
 from talala import yt_utils
 from talala.playlist import Playlist
