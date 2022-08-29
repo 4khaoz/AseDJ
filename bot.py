@@ -20,8 +20,8 @@ bot = commands.Bot(
 )
 
 # Variables
-playlist:       Playlist            = None 
-media_player:   vlc.MediaPlayer     = None 
+playlist:       Playlist            = None
+media_player:   vlc.MediaPlayer     = None
 event_manager:  vlc.EventManager    = None
 text_channel: discord.abc.GuildChannel = None
 voice_channel: discord.VoiceChannel = None
@@ -177,39 +177,6 @@ async def volume(ctx: commands.Context, value: int):
         value = 0
     media_player.audio_set_volume(value)
 
-
-@bot.command()
-async def calibrate(ctx: commands.Context):
-    thread = Thread(target=calibrate_task)
-    await ctx.send("Starting Calibration...")
-    thread.start()
-    await ctx.send("Calibrating...")
-    thread.join()
-    await ctx.send("Finished Calibration")
-
-
-def calibrate_task():
-    i = 0
-    length = len(playlist.items)
-
-    imported_playlist = []
-    failed_to_import = []
-
-    for video in playlist.items:
-        print(f"Calibrating... {i} / {length}")
-        video_data = __get_video_data_with_ytdl(video['url'])
-
-        if 'failed' in video_data:
-            failed_to_import.append(video_data)
-        else:
-            imported_playlist.append(video_data)
-        i += 1
-    
-    with open('new_playlist.json', 'w') as file:
-        json.dump(imported_playlist, file, indent=4)
-
-    with open('failed_to_import.json', 'w') as file:
-        json.dump(failed_to_import, file, indent=4)
 
 async def __setup_voice_client():
     """
