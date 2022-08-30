@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import vlc
 
 from talala import yt_utils
+from talala.music_queue import MusicQueue
 from talala.playlist import Playlist
 
 
@@ -19,17 +20,13 @@ bot = commands.Bot(
 )
 
 # Variables
-playlist:       Playlist            = None
-media_player:   vlc.MediaPlayer     = None
-event_manager:  vlc.EventManager    = None
-text_channel: discord.abc.GuildChannel = None
-voice_channel: discord.VoiceChannel = None
-voice_client: discord.VoiceClient = None
-
-current_video = None
-current_source = None
-next_video = None
-next_source = None
+playlist:       Playlist                    = None
+music_queue:    MusicQueue                  = None
+media_player:   vlc.MediaPlayer             = None
+event_manager:  vlc.EventManager            = None
+text_channel:   discord.abc.GuildChannel    = None
+voice_channel:  discord.VoiceChannel        = None
+voice_client:   discord.VoiceClient         = None
 
 #
 # Bot Events
@@ -41,6 +38,7 @@ async def on_ready():
     global text_channel
     global voice_channel
     global playlist
+    global music_queue
 
     # Get text channel for event logging
     event_channel_id = os.getenv('CHANNEL')
@@ -60,6 +58,8 @@ async def on_ready():
     await __setup_voice_client()
 
     playlist = Playlist.load('playlist.json')
+    music_queue = MusicQueue(playlist, event_loop=bot.loop)
+
     await playNext()
 
 
@@ -93,6 +93,8 @@ async def add(ctx: commands.Context, *arg: str):
 
     playlist.add_item(video_data)
     playlist.save()
+
+    music_queue.enqueue_item(video_data)
 
     # Send Embed
     embed = discord.Embed(
@@ -217,10 +219,8 @@ async def playNext(video: dict = None):
     Plays the next video
     @param      video       If video is not given, get a random one
     """
-    __preload_videos(video)
 
-    if current_video['url'].startswith('//'):
-        current_video['url'] = "https:" + current_video['url']
+    current_video, current_source = music_queue.next_item(video)
 
     # Send Embed
     if text_channel:
@@ -265,35 +265,6 @@ async def __play_voice_client(media: str):
         after=lambda e: print("Voice Client finished playing song")
     )
     voice_client.source = discord.PCMVolumeTransformer(voice_client.source, volume=0.5)
-
-
-def __preload_videos(video: dict = None):
-    global playlist
-    global current_video
-    global current_source
-    global next_video
-    global next_source
-
-    if video:
-        current_video = video
-        current_source = yt_utils.get_source_from_url(current_video['url'])
-    elif next_video:
-        current_video = next_video
-        current_source = next_source
-    else:
-        current_video = playlist.get_random_item()     # Python conditional operator
-        current_source = yt_utils.get_source_from_url(current_video['url'])
-
-    bot.loop.create_task(__preload_next_video())
-
-
-async def __preload_next_video():
-    global playlist
-    global next_video
-    global next_source
-
-    next_video = playlist.get_random_item()
-    next_source = yt_utils.get_source_from_url(next_video['url'])
 
 
 def __video_finished(event):
