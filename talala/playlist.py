@@ -1,10 +1,20 @@
-from typing_extensions import Self
+from __future__ import annotations
 
 import json
 
+from dataclasses import dataclass
+
+@dataclass(slots=True)
+class Video:
+    id: str
+    title: str
+    url: str
+    thumbnail: str
+
+
 class Playlist:
 
-    def load(path: str) -> Self:
+    def load(path: str) -> Playlist:
         """
         Load playlist-data from JSON-File
         """
@@ -12,19 +22,19 @@ class Playlist:
         with open(path) as file:
             try:
                 print("Playlist loaded from {}".format(path))
-                return Playlist(path=path, items=json.load(file))
+                return Playlist(path=path, items=[Video(**item) for item in json.load(file)])
 
             except json.JSONDecodeError:
                 print("Playlist could not be loaded")
                 return Playlist(path=path)
 
 
-    def __init__(self, path: str, items: list[dict] = []) -> None:
-        self.path: str           = path
-        self.items: list[dict]   = items    # Static List where newly added videos are appended
+    def __init__(self, path: str, items: list[Video] = []) -> None:
+        self.path: str          = path
+        self.items: list[Video] = items    # Static List where newly added videos are appended
 
 
-    def add_item(self, item: dict) -> None:
+    def add_item(self, item: Video) -> None:
         """
         Add video to the playlist
         @param item Video data
@@ -45,4 +55,4 @@ class Playlist:
         Save playlist-data to JSON-File
         """
         with open(self.path, 'w') as file:
-            json.dump(self.items, file, indent=4)
+            json.dump([item.asdict() for item in self.items], file, indent=4)
