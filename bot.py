@@ -81,9 +81,9 @@ async def add(ctx: commands.Context, *arg: str):
     @param      ctx     Discord Text-Channel in which command was used
     @param      arg     Youtube-Link or Title (YT searches automatically and returns first video found)
     """
-    video_data = yt_utils.get_video_data_with_ytdl(arg)
+    video_data, _ = yt_utils.get_video_data_with_ytdl(arg)
 
-    if "failed" in video_data:
+    if video_data is None:
         await ctx.send("Failed to retrieve Video data")
         return
 
@@ -122,7 +122,7 @@ async def mark(ctx: commands.Context, key: str, *arg: str):
         await ctx.send("Key already exists. Unmark first or use another.")
         return
 
-    marked[key] = yt_utils.get_video_data_with_ytdl(arg)
+    marked[key], _ = yt_utils.get_video_data_with_ytdl(arg)
 
     with open('marked.json', 'w') as file:
         json.dump(marked, file, indent=4)

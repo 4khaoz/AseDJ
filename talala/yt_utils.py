@@ -1,9 +1,10 @@
+from typing import Optional
 from yt_dlp import YoutubeDL
 import validators
 
 from talala.playlist import Video
 
-def get_video_data_with_ytdl(arg: tuple[str, ...]) -> Video:
+def get_video_data_with_ytdl(arg: tuple[str, ...]) -> tuple[Optional[Video], Optional[dict]]:
     ydl_opts = {
         'format': 'bestaudio/best',
         'restrictfilenames': True,
@@ -23,15 +24,15 @@ def get_video_data_with_ytdl(arg: tuple[str, ...]) -> Video:
                 info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
         except Exception as e:
             print(f"Extracting Information failed: {e}")
-            return {"failed": True, "url": arg}
+            return (None, {"url": arg})
 
-
-    return Video(
+    video = Video(
         id=info['id'],
         title=info['title'],
         url=f"https://www.youtube.com/watch?v={info['id']}",
-        thumbnail=info['thumbnail']
-    )
+        thumbnail=info['thumbnail'])
+
+    return (video, None)
 
 
 def get_source_from_url(url: str):
