@@ -10,6 +10,7 @@ import vlc
 from talala import yt_utils
 from talala.music_queue import MusicQueue
 from talala.playlist import Playlist
+from talala.playlist import Video
 
 
 load_dotenv()
@@ -87,7 +88,7 @@ async def add(ctx: commands.Context, *arg: str):
         return
 
     global playlist
-    if playlist.item_exists(video_id=video_data['id']):
+    if playlist.item_exists(video_id=video_data.id):
         await ctx.send("Video is already in playlist")
         return
 
@@ -98,10 +99,10 @@ async def add(ctx: commands.Context, *arg: str):
 
     # Send Embed
     embed = discord.Embed(
-        title=f"Added {video_data['title']} to playlist",
-        description=f"{video_data['url']}"
+        title=f"Added {video_data.title} to playlist",
+        description=f"{video_data.url}"
     )
-    embed.set_thumbnail(url=video_data['thumbnail'])
+    embed.set_thumbnail(url=video_data.thumbnail)
     await ctx.send(embed=embed)
 
 #
@@ -214,7 +215,7 @@ def __setup_media_player():
     event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, __video_finished)
 
 
-async def playNext(video: dict = None):
+async def playNext(video: Video = None):
     """
     Plays the next video
     @param      video       If video is not given, get a random one
@@ -225,10 +226,10 @@ async def playNext(video: dict = None):
     # Send Embed
     if text_channel:
         embed = discord.Embed(
-            title=f"Now playing {current_video['title']}",
-            description=f"{current_video['url']}"
+            title=f"Now playing {current_video.title}",
+            description=f"{current_video.url}"
         )
-        embed.set_thumbnail(url=current_video['thumbnail'])
+        embed.set_thumbnail(url=current_video.thumbnail)
         await text_channel.send(embed=embed)
 
     await __play(current_source)

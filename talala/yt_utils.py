@@ -1,7 +1,9 @@
 from yt_dlp import YoutubeDL
 import validators
 
-def get_video_data_with_ytdl(arg: tuple[str, ...]) -> dict:
+from talala.playlist import Video
+
+def get_video_data_with_ytdl(arg: tuple[str, ...]) -> Video:
     ydl_opts = {
         'format': 'bestaudio/best',
         'restrictfilenames': True,
@@ -23,12 +25,13 @@ def get_video_data_with_ytdl(arg: tuple[str, ...]) -> dict:
             print(f"Extracting Information failed: {e}")
             return {"failed": True, "url": arg}
 
-    return {
-        "id": info['id'],
-        "title": info['title'],
-        "url": f"https://www.youtube.com/watch?v={info['id']}",
-        "thumbnail": info['thumbnail']
-    }
+
+    return Video(
+        id=info['id'],
+        title=info['title'],
+        url=f"https://www.youtube.com/watch?v={info['id']}",
+        thumbnail=info['thumbnail']
+    )
 
 
 def get_source_from_url(url: str):
