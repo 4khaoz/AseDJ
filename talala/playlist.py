@@ -4,7 +4,7 @@ import json
 
 from dataclasses import dataclass
 
-@dataclass(slots=True)
+@dataclass
 class Video:
     id: str
     title: str
