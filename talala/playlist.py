@@ -9,20 +9,20 @@ class Playlist:
         """
         Load playlist-data from JSON-File
         """
-        
+
         with open(path) as file:
-            try:                
-                print("Playlist loaded from {}".format(path))            
+            try:
+                print("Playlist loaded from {}".format(path))
                 return Playlist(path=path, items=json.load(file))
 
             except json.JSONDecodeError:
                 print("Playlist could not be loaded")
                 return Playlist(path=path)
 
-    
+
     def __init__(self, path: str, items: list[dict] = []) -> None:
-        self.path: str           = path         
-        self.items: list[dict]   = items    # Static List where newly added videos are appended 
+        self.path: str           = path
+        self.items: list[dict]   = items    # Static List where newly added videos are appended
         self.__queue: list[dict] = None     # Shuffled list to play
 
 
@@ -61,11 +61,10 @@ class Playlist:
         Save playlist-data to JSON-File
         """
         with open(self.path, 'w') as file:
-            json.dump(self.items, file, indent=4)      
-    
+            json.dump(self.items, file, indent=4)
+
 
     def __load_queue(self) -> None:
         self.__queue = random.sample(self.items, len(self.items))
         print("Shuffling queue")
         print(self.__queue)
-        
