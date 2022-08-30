@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+import dataclasses
 from dataclasses import dataclass
 
 @dataclass
@@ -22,7 +23,7 @@ class Playlist:
         with open(path) as file:
             try:
                 print("Playlist loaded from {}".format(path))
-                return Playlist(path=path, items=[Video(**item) for item in json.load(file)])
+                return Playlist(path=path, items=[Video(id=item.get('id'), title=item.get('title'), url=item.get('url'), thumbnail=item.get('thumbnail')) for item in json.load(file)])
 
             except json.JSONDecodeError:
                 print("Playlist could not be loaded")
@@ -47,7 +48,7 @@ class Playlist:
         Get random item from playlist
         @param video_id The ID of the video to check against the videos in the playlist
         """
-        return any(video_id in video_data['id'] for video_data in self.items)
+        return any(video_id in video_data.id for video_data in self.items)
 
 
     def save(self) -> None:
@@ -55,4 +56,4 @@ class Playlist:
         Save playlist-data to JSON-File
         """
         with open(self.path, 'w') as file:
-            json.dump([item.asdict() for item in self.items], file, indent=4)
+            json.dump([dataclasses.asdict(item) for item in self.items], file, indent=4)
