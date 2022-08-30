@@ -67,4 +67,3 @@ class Playlist:
     def __load_queue(self) -> None:
         self.__queue = random.sample(self.items, len(self.items))
         print("Shuffling queue")
-        print(self.__queue)
