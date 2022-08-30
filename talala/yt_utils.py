@@ -4,7 +4,7 @@ import validators
 
 from talala.playlist import Video
 
-def get_video_data_with_ytdl(arg: tuple[str, ...]) -> tuple[Optional[Video], Optional[dict]]:
+def get_video_data_with_ytdl(query: str) -> tuple[Optional[Video], Optional[dict]]:
     ydl_opts = {
         'format': 'bestaudio/best',
         'restrictfilenames': True,
@@ -18,13 +18,14 @@ def get_video_data_with_ytdl(arg: tuple[str, ...]) -> tuple[Optional[Video], Opt
     # Extract Youtube Video Data
     with YoutubeDL(ydl_opts) as ydl:
         try:
-            if validators.url(arg[0]):
-                info = ydl.extract_info(arg[0], download=False)
+            info = ydl.extract_info(query, download=False)
+            if validators.url(query):
+                info = ydl.extract_info(query, download=False)
             else:
-                info = ydl.extract_info(f"ytsearch:{arg}", download=False)['entries'][0]
+                info = ydl.extract_info(f"ytsearch:{query}", download=False)['entries'][0]
         except Exception as e:
             print(f"Extracting Information failed: {e}")
-            return (None, {"url": arg})
+            return (None, {"url": query})
 
     video = Video(
         id=info['id'],
