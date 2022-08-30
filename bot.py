@@ -183,11 +183,12 @@ async def __setup_voice_client():
     """
     global voice_client
     global voice_channel
-    
+
     if voice_channel is None:
         return
 
-    if voice_client is None:
+    # Create a new voice channel if there's none or it's no longer connected
+    if voice_client is None or not voice_client.is_connected():
         voice_client = await voice_channel.connect()
 
     # Already connected and in the right channel
@@ -230,32 +231,40 @@ async def playNext(video: dict = None):
         embed.set_thumbnail(url=current_video['thumbnail'])
         await text_channel.send(embed=embed)
 
-    __play(current_source)
+    await __play(current_source)
 
 
-def __play(media: str):
+async def __play(media: str):
     """
     @param      media       Youtube Audio Source URL
-    """    
+    """
     global media_player
     global event_manager
     global voice_client
+
+    if voice_client:
+        await __play_voice_client(media)
+
+    # It'll interrupt the currently playing music
+    media_player.set_mrl(media)
+    media_player.play()
+
+
+async def __play_voice_client(media: str):
 
     FFMPEG_OPTS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         'options': '-vn'
     }
 
-    if voice_client:
-        voice_client.play(
-            discord.FFmpegPCMAudio(media, **FFMPEG_OPTS),
-            after=lambda e: print("Voice Client finished playing song")
-        )
-        voice_client.source = discord.PCMVolumeTransformer(voice_client.source, volume=0.5)
+    if not voice_client.is_connected():
+        await __setup_voice_client()
 
-    # It'll interrupt the currently playing music
-    media_player.set_mrl(media)
-    media_player.play()
+    voice_client.play(
+        discord.FFmpegPCMAudio(media, **FFMPEG_OPTS),
+        after=lambda e: print("Voice Client finished playing song")
+    )
+    voice_client.source = discord.PCMVolumeTransformer(voice_client.source, volume=0.5)
 
 
 def __preload_videos(video: dict = None):
