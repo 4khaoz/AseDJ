@@ -19,7 +19,7 @@ if __name__ == "__main__":
         url = video['url']
         if url.startswith('//'):
             url = f"https:{url}"
-                
+
         video_data = yt_utils.get_video_data_with_ytdl(url)
 
         if 'failed' in video_data:
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         else:
             imported_playlist.append(video_data)
         i += 1
-    
+
     with open('new_playlist.json', 'w') as file:
         json.dump(imported_playlist, file, indent=4)
 

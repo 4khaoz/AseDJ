@@ -48,14 +48,14 @@ async def on_ready():
         text_channel = bot.get_channel(int(event_channel_id))
     else:
         print("Will not output events on Discord. No text channel ID specified.")
-    
+
     # Get voice channel for music streaming
     voice_channel_id = os.getenv('VOICE')
     if voice_channel_id:
         voice_channel = bot.get_channel(int(voice_channel_id))
     else:
         print("Will not stream music on Discord. No voice channel ID specified.")
-    
+
     __setup_media_player()
     await __setup_voice_client()
 
@@ -94,7 +94,7 @@ async def add(ctx: commands.Context, *arg: str):
     playlist.add_item(video_data)
     playlist.save()
 
-    # Send Embed    
+    # Send Embed
     embed = discord.Embed(
         title=f"Added {video_data['title']} to playlist",
         description=f"{video_data['url']}"
@@ -114,7 +114,7 @@ async def mark(ctx: commands.Context, key: str, *arg: str):
     except:
         print("marked.json could not be loaded")
         marked = {}
-    
+
     if key in marked:
         await ctx.send("Key already exists. Unmark first or use another.")
         return
@@ -203,11 +203,11 @@ async def __setup_voice_client():
 def __setup_media_player():
     """
     Setup a new VLC media player instance and event manager
-    """    
+    """
     global media_player
     global event_manager
-    
-    media_player    = vlc.MediaPlayer() 
+
+    media_player    = vlc.MediaPlayer()
     event_manager   = media_player.event_manager()
     event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, __video_finished)
 
@@ -222,7 +222,7 @@ async def playNext(video: dict = None):
     if current_video['url'].startswith('//'):
         current_video['url'] = "https:" + current_video['url']
 
-    # Send Embed    
+    # Send Embed
     if text_channel:
         embed = discord.Embed(
             title=f"Now playing {current_video['title']}",
@@ -298,7 +298,7 @@ async def __preload_next_video():
 
 def __video_finished(event):
     print(f"Finished {event}")
-    
+
     bot.loop.create_task(playNext())
 
 
@@ -307,7 +307,7 @@ try:
     bot.run(os.getenv('TOKEN'), bot=True)
 finally:
     # Close the VLC media player
-    print("Cleaning up...")    
+    print("Cleaning up...")
 
     if media_player:
         media_player.release()
