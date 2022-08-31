@@ -23,7 +23,9 @@ class Playlist:
         with open(path) as file:
             try:
                 print("Playlist loaded from {}".format(path))
-                return Playlist(path=path, items=[Video(id=item.get('id'), title=item.get('title'), url=item.get('url'), thumbnail=item.get('thumbnail')) for item in json.load(file)])
+                # TODO: This will crash if an items has attributes that are not recogniszd by the Video dataclass
+                deserialized_items = [Video(id=item.get('id'), title=item.get('title'), url=item.get('url'), thumbnail=item.get('thumbnail')) for item in json.load(file)]
+                return Playlist(path=path, items=deserialized_items)
 
             except json.JSONDecodeError:
                 print("Playlist could not be loaded")
@@ -55,5 +57,8 @@ class Playlist:
         """
         Save playlist-data to JSON-File
         """
+        # Don't put this inside the with statement. If any error occurs, the playlist file will be empty.
+        # TODO: Write to a temporary file first?
+        serialized_items = [dataclasses.asdict(item) for item in self.items]
         with open(self.path, 'w') as file:
-            json.dump([dataclasses.asdict(item) for item in self.items], file, indent=4)
+            json.dump(serialized_items, file, indent=4)
