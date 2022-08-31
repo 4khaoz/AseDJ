@@ -45,12 +45,12 @@ class Playlist:
         self.items.append(item)
 
 
-    def item_exists(self, video_id: str) -> bool:
+    def item_exists(self, item: Video) -> bool:
         """
         Get random item from playlist
-        @param video_id The ID of the video to check against the videos in the playlist
+        @param video The video to check against the videos in the playlist
         """
-        return any(video_id in video_data.id for video_data in self.items)
+        return item in self.items
 
 
     def save(self) -> None:
