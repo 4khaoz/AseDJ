@@ -21,10 +21,10 @@ if __name__ == "__main__":
         if url.startswith('//'):
             url = f"https:{url}"
 
-        video_data, info = yt_utils.get_video_data_with_ytdl(url)
-
-        if video_data is None:
-            failed_to_import.append(info)
+        try:
+            video_data = yt_utils.get_video_data_with_ytdl(url)
+        except yt_utils.YTLookupError as err:
+            failed_to_import.append({"url": err.url})
         else:
             imported_playlist.append(dataclasses.asdict(video_data))
         i += 1
