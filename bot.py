@@ -75,20 +75,20 @@ async def connect(ctx: commands.Context):
     await __setup_voice_client()
 
 @bot.command()
-async def add(ctx: commands.Context, *arg: str):
+async def add(ctx: commands.Context, *, query: str):
     """
     Add video to playlist
     @param      ctx     Discord Text-Channel in which command was used
-    @param      arg     Youtube-Link or Title (YT searches automatically and returns first video found)
+    @param      query     Youtube-Link or Title (YT searches automatically and returns first video found)
     """
-    video_data, _ = yt_utils.get_video_data_with_ytdl(arg)
+    video_data, _ = yt_utils.get_video_data_with_ytdl(query)
 
     if video_data is None:
         await ctx.send("Failed to retrieve Video data")
         return
 
     global playlist
-    if playlist.item_exists(video_id=video_data.id):
+    if playlist.item_exists(video_data):
         await ctx.send("Video is already in playlist")
         return
 
