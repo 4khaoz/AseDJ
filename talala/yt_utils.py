@@ -4,7 +4,13 @@ import validators
 
 from talala.playlist import Video
 
-def get_video_data_with_ytdl(query: str) -> tuple[Optional[Video], Optional[dict]]:
+class YTLookupError(Exception):
+    """Exception raised when unable to lookup video"""
+    def __init__(self, url, *args):
+        self.url = url
+        super().__init__(*args)
+
+def get_video_data_with_ytdl(query: str) -> Video:
     ydl_opts = {
         'format': 'bestaudio/best',
         'restrictfilenames': True,
@@ -23,18 +29,14 @@ def get_video_data_with_ytdl(query: str) -> tuple[Optional[Video], Optional[dict
                 info = ydl.extract_info(query, download=False)
             else:
                 info = ydl.extract_info(f"ytsearch:{query}", download=False)['entries'][0]
-        except Exception as e:
-            print(f"Extracting Information failed: {e}")
-            return (None, {"url": query})
+        except Exception as err:
+            raise YTLookupError(url=query, message=f"Extracting Information failed: {err}") from err
 
-    video = Video(
+    return Video(
         id=info['id'],
         title=info['title'],
         url=f"https://www.youtube.com/watch?v={info['id']}",
         thumbnail=info['thumbnail'])
-
-    return (video, None)
-
 
 def get_source_from_url(url: str):
     """
