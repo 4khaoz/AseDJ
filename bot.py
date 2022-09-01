@@ -82,16 +82,20 @@ async def add(ctx: commands.Context, *, query: str):
     @param      query     Youtube-Link or Title (YT searches automatically and returns first video found)
     """
 
+    message: discord.Message = await ctx.send(content=f"Searching video: <{query}>")
+
     try:
         video_data = yt_utils.get_video_data_with_ytdl(query)
     except yt_utils.YTLookupError:
-        await ctx.send("Failed to retrieve Video data")
+        await message.edit(content="Failed to retrieve Video data")
         return
 
     global playlist
     if playlist.item_exists(video_data):
-        await ctx.send("Video is already in playlist")
+        await message.edit(content="Video is already in playlist")
         return
+
+    print(f"Adding video: {video_data}")
 
     playlist.add_item(video_data)
     playlist.save()
@@ -104,7 +108,7 @@ async def add(ctx: commands.Context, *, query: str):
         description=f"{video_data.url}"
     )
     embed.set_thumbnail(url=video_data.thumbnail)
-    await ctx.send(embed=embed)
+    await message.edit(content=None, embed=embed)
 
 #
 # TODO: Cleanup and refactor mark, unmark and meme command
