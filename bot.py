@@ -89,6 +89,8 @@ async def add(ctx: commands.Context, *, query: str):
     except yt_utils.YTLookupError:
         await message.edit(content="Failed to retrieve Video data")
         return
+    except yt_utils.yt_utils.DurationPolicyError:
+        await message.edit(content="Video-Duration-Policy violated: Video duration is too long (Max. 12min)")
 
     global playlist
     if playlist.item_exists(video_data):

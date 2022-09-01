@@ -11,6 +11,7 @@ class Video:
     title: str
     url: str
     thumbnail: str
+    duration: int
 
 
 class Playlist:
@@ -24,7 +25,7 @@ class Playlist:
             try:
                 print("Playlist loaded from {}".format(path))
                 # TODO: This will crash if an items has attributes that are not recogniszd by the Video dataclass
-                deserialized_items = [Video(id=item.get('id'), title=item.get('title'), url=item.get('url'), thumbnail=item.get('thumbnail')) for item in json.load(file)]
+                deserialized_items = [Video(id=item.get('id'), title=item.get('title'), url=item.get('url'), thumbnail=item.get('thumbnail'), duration=item.get('duration')) for item in json.load(file)]
                 return Playlist(path=path, items=deserialized_items)
 
             except json.JSONDecodeError:
