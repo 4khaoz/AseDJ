@@ -266,6 +266,10 @@ async def __play_voice_client(media: str):
     if not voice_client.is_connected():
         await __setup_voice_client()
 
+    # TODO: We should wait for the music to stop, but for now we'll cut it off.
+    if voice_client.is_playing():
+        voice_client.stop()
+
     voice_client.play(
         discord.FFmpegPCMAudio(media, **FFMPEG_OPTS),
         after=lambda e: print("Voice Client finished playing song")
