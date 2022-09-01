@@ -25,6 +25,8 @@ if __name__ == "__main__":
             video_data = yt_utils.get_video_data_with_ytdl(url)
         except yt_utils.YTLookupError as err:
             failed_to_import.append({"url": err.url})
+        except yt_utils.DurationPolicyError as err:
+            failed_to_import.append({"url": err.url})
         else:
             imported_playlist.append(dataclasses.asdict(video_data))
         i += 1
