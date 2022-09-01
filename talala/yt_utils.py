@@ -24,7 +24,6 @@ def get_video_data_with_ytdl(query: str) -> Video:
     # Extract Youtube Video Data
     with YoutubeDL(ydl_opts) as ydl:
         try:
-            info = ydl.extract_info(query, download=False)
             if validators.url(query):
                 info = ydl.extract_info(query, download=False)
             else:
