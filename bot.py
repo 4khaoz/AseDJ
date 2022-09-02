@@ -197,12 +197,15 @@ async def __setup_voice_client():
     if voice_channel is None:
         return
 
-    # Create a new voice channel if there's none or it's no longer connected
+    voice_client = discord.utils.get(bot.voice_clients, guild=voice_channel.guild)
+
+    # First check if there's a voice client already connected to a channel in the server.
+    # If not, create a new voice client.
     if voice_client is None or not voice_client.is_connected():
         voice_client = await voice_channel.connect()
 
     # Already connected and in the right channel
-    if voice_client.channel == voice_channel and voice_client.is_connected():
+    if voice_client.channel == voice_channel:
         return
 
     # Move Voice
