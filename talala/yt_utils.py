@@ -9,13 +9,13 @@ MAX_DURATION = 720
 
 class YTLookupError(Exception):
     """Exception raised when unable to lookup video"""
-    def __init__(self, url, *args):
+    def __init__(self, *args, url: str):
         self.url = url
         super().__init__(*args)
 
 class DurationPolicyError(Exception):
     """Exception raised when Video-Duration-Policy is violated"""
-    def __init__(self, url, *args):
+    def __init__(self, *args, url: str):
         self.url = url
         super().__init__(*args)
 
@@ -38,11 +38,11 @@ def get_video_data_with_ytdl(query: str) -> Video:
             else:
                 info = ydl.extract_info(f"ytsearch:{query}", download=False)['entries'][0]
         except Exception as err:
-            raise YTLookupError(url=query, message=f"Extracting Information failed: {err}") from err
+            raise YTLookupError(f"Extracting Information failed: {err}", url=query) from err
 
     if info['duration'] > MAX_DURATION:
         # Video Duration violates the 12min-limit-policy
-        raise DurationPolicyError(url=query, message=f"Video-Duration-Policy violated")
+        raise DurationPolicyError(f"Video-Duration-Policy violated", url=query)
 
     return Video(
         id=info['id'],
