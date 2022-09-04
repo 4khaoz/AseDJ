@@ -64,6 +64,21 @@ async def on_ready():
     await playNext()
 
 
+@bot.event
+async def on_reaction_add(reaction, user):
+    if reaction.message.author != bot.user:
+        # Ignore messages written by other users
+        return
+
+    if reaction.me:
+        # Ignore Reactions made by bot
+        return
+
+    # TODO:
+    # 1. add-cmd lists multiple videos -> select correct video through reaction?
+    # 2. after adding video -> react to revert action?
+
+
 #
 # Bot Commands
 #
