@@ -15,9 +15,12 @@ from talala.playlist import Video
 
 load_dotenv()
 
+intents = discord.Intents.default()
+
 # Bot Instance
-bot = commands.Bot(
-    command_prefix=os.getenv('COMMAND_PREFIX', default='$')
+bot: commands.Bot = commands.Bot(
+    command_prefix=os.getenv('COMMAND_PREFIX', default='$'),
+    intents=intents
 )
 
 # Variables
@@ -36,10 +39,13 @@ voice_client:   discord.VoiceClient         = None
 async def on_ready():
     print('Logged in')
 
+    global bot
     global text_channel
     global voice_channel
     global playlist
     global music_queue
+
+    await bot.tree.sync()
 
     # Get text channel for event logging
     event_channel_id = os.getenv('CHANNEL')
@@ -82,34 +88,34 @@ async def on_reaction_add(reaction, user):
 #
 # Bot Commands
 #
-@bot.command()
-async def connect(ctx: commands.Context):
+@bot.tree.command()
+async def connect(interaction: discord.Interaction):
     """
     Manually connect bot to voice channel if e.g. disconnected
     """
     await __setup_voice_client()
 
-@bot.command()
-async def add(ctx: commands.Context, *, query: str):
+@bot.tree.command(description='Adds a song to the playlist')
+async def add(interaction: discord.Interaction, query: str):
     """
     Add video to playlist
     @param      ctx     Discord Text-Channel in which command was used
     @param      query     Youtube-Link or Title (YT searches automatically and returns first video found)
     """
 
-    message: discord.Message = await ctx.send(content=f"Searching video: <{query}>")
+    await interaction.response.send_message(content=f"Searching video: <{query}>")
 
     try:
         video_data = yt_utils.get_video_data_with_ytdl(query)
     except yt_utils.YTLookupError:
-        await message.edit(content="Failed to retrieve Video data")
+        await interaction.edit_original_response(content="Failed to retrieve Video data")
         return
     except yt_utils.yt_utils.DurationPolicyError:
-        await message.edit(content="Video-Duration-Policy violated: Video duration is too long (Max. 12min)")
+        await interaction.edit_original_response(content="Video-Duration-Policy violated: Video duration is too long (Max. 12min)")
 
     global playlist
     if playlist.item_exists(video_data):
-        await message.edit(content="Video is already in playlist")
+        await interaction.edit_original_response(content="Video is already in playlist")
         return
 
     print(f"Adding video: {video_data}")
@@ -125,14 +131,14 @@ async def add(ctx: commands.Context, *, query: str):
         description=f"{video_data.url}"
     )
     embed.set_thumbnail(url=video_data.thumbnail)
-    await message.edit(content=None, embed=embed)
+    await interaction.edit_original_response(content=None, embed=embed)
 
 #
 # TODO: Cleanup and refactor mark, unmark and meme command
 #
 
-@bot.command()
-async def mark(ctx: commands.Context, key: str, *arg: str):
+@bot.tree.command()
+async def mark(interaction: discord.Interaction, key: str, video: str):
     try:
         with open('marked.json', 'r') as file:
             marked = json.load(file)
@@ -141,23 +147,23 @@ async def mark(ctx: commands.Context, key: str, *arg: str):
         marked = {}
 
     if key in marked:
-        await ctx.send("Key already exists. Unmark first or use another.")
+        await interaction.response.send_message("Key already exists. Unmark first or use another.")
         return
 
-    marked[key] = yt_utils.get_video_data_with_ytdl(arg)
+    marked[key] = yt_utils.get_video_data_with_ytdl(video)
 
     with open('marked.json', 'w') as file:
         json.dump(marked, file, indent=4)
 
-    await ctx.send("Key applied")
+    await interaction.response.send_message("Key applied")
 
 
-@bot.command()
-async def unmark(ctx: commands.Context, key: str):
-    await ctx.send(f"The key '{key}' has been freed")
+@bot.tree.command()
+async def unmark(interaction: discord.Interaction, key: str):
+    await interaction.response.send_message(f"The key '{key}' has been freed")
 
-@bot.command()
-async def meme(ctx: commands.Context, key: str):
+@bot.tree.command()
+async def meme(interaction: discord.Interaction, key: str):
     try:
         with open('marked.json', 'r') as file:
             marked = json.load(file)
@@ -169,21 +175,22 @@ async def meme(ctx: commands.Context, key: str):
         media_player.stop()
         voice_client.stop()
         await playNext(marked[key])
-        await ctx.send("Ehehehe")
+        await interaction.response.send_message("Ehehehe")
     else:
-        await ctx.send("Key not found")
+        await interaction.response.send_message("Key not found")
 
 
-@bot.command()
-async def play(ctx: commands.Context):
+@bot.tree.command()
+async def play(interaction: discord.Interaction):
     """
     Manual play command
     """
     await playNext()
+    interaction.response.send_message(content=f'Now playing.')
 
 
-@bot.command()
-async def stop(ctx: commands.Context):
+@bot.tree.command()
+async def stop(interaction: discord.Interaction):
     """
     Manual stop command
     """
@@ -191,15 +198,17 @@ async def stop(ctx: commands.Context):
     global voice_client
     media_player.stop()
     voice_client.stop()
+    interaction.response.send_message(content=f'Stopped playing.')
 
 
-@bot.command()
-async def volume(ctx: commands.Context, value: int):
-    if value > 100:
-        value = 100
-    if value < 0:
-        value = 0
-    media_player.audio_set_volume(value)
+@bot.tree.command()
+async def volume(interaction: discord.Interaction, level: int):
+    if level > 100:
+        level = 100
+    if level < 0:
+        level = 0
+    media_player.audio_set_volume(level)
+    interaction.response.send_message(content=f'Volume set to{level}.')
 
 
 async def __setup_voice_client():
@@ -305,7 +314,7 @@ def __video_finished(event):
 
 # Start bot
 try:
-    bot.run(os.getenv('TOKEN'), bot=True)
+    bot.run(os.getenv('TOKEN'))
 finally:
     # Close the VLC media player
     print("Cleaning up...")
