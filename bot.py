@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from typing import Optional
+
 from discord.ext import commands
 import discord
 import json
@@ -12,7 +14,6 @@ from talala.music_queue import MusicQueue
 from talala.playlist import Playlist
 from talala.playlist import Video
 
-
 load_dotenv()
 
 intents = discord.Intents.default()
@@ -24,13 +25,13 @@ bot: commands.Bot = commands.Bot(
 )
 
 # Variables
-playlist:       Playlist                    = None
-music_queue:    MusicQueue                  = None
-media_player:   vlc.MediaPlayer             = None
-event_manager:  vlc.EventManager            = None
-text_channel:   discord.abc.GuildChannel    = None
-voice_channel:  discord.VoiceChannel        = None
-voice_client:   discord.VoiceClient         = None
+playlist: Optional[Playlist] = None
+music_queue: Optional[MusicQueue] = None
+media_player: Optional[vlc.MediaPlayer] = None
+event_manager: Optional[vlc.EventManager] = None
+text_channel: Optional[discord.abc.GuildChannel] = None
+voice_channel: Optional[discord.VoiceChannel] = None
+voice_client: Optional[discord.VoiceClient] = None
 
 
 #
@@ -102,8 +103,8 @@ async def connect(interaction: discord.Interaction):
 async def add(interaction: discord.Interaction, url: str):
     """
     Add video to playlist
-    @param      ctx     Discord Text-Channel in which command was used
-    @param      query     Youtube-Link or Title (YT searches automatically and returns first video found)
+    @param      interaction     Discord Text-Channel in which command was used
+    @param      url     Youtube-Link or Title (YT searches automatically and returns first video found)
     """
 
     await interaction.response.send_message(content=f"Searching video: <{url}>", ephemeral=True)
