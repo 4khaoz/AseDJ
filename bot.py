@@ -112,10 +112,10 @@ async def add(interaction: discord.Interaction, url: str):
     try:
         video_data = yt_utils.get_video_data_with_ytdl(url)
     except yt_utils.YTLookupError:
-        await interaction.followup.send_message(content="Failed to retrieve Video data", ephemeral=True)
+        await interaction.followup.send(content="Failed to retrieve Video data", ephemeral=True)
         return
     except yt_utils.DurationPolicyError:
-        await interaction.followup.send_message(
+        await interaction.followup.send(
             content="Video-Duration-Policy violated: Video duration is too long (Max. 12min)",
             ephemeral=True
         )
@@ -123,7 +123,7 @@ async def add(interaction: discord.Interaction, url: str):
 
     global playlist
     if playlist.item_exists(video_data):
-        await interaction.followup.send_message(content="Video is already in playlist", ephemeral=True)
+        await interaction.followup.send(content="Video is already in playlist", ephemeral=True)
         return
 
     playlist.add_item(video_data)
@@ -137,7 +137,7 @@ async def add(interaction: discord.Interaction, url: str):
         description=f"{video_data.url}"
     )
     embed.set_thumbnail(url=video_data.thumbnail)
-    await interaction.followup.send_message(content=None, embed=embed)
+    await interaction.followup.send(content=None, embed=embed)
 
 
 #
