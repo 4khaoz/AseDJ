@@ -210,9 +210,9 @@ async def stop(interaction: discord.Interaction):
 
 @bot.tree.command()
 async def volume(interaction: discord.Interaction, level: int):
-    level = max(100, min(0, level))
+    level = min(100, max(0, level))
     media_player.audio_set_volume(level)
-    await interaction.response.send_message(content=f'Volume set to{level}.', ephemeral=True)
+    await interaction.response.send_message(content=f'Volume set to {level}.', ephemeral=True)
 
 
 async def __setup_voice_client():
