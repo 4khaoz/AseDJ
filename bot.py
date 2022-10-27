@@ -270,6 +270,8 @@ async def __play_next(video: Video = None):
         embed.set_thumbnail(url=current_video.thumbnail)
         await text_channel.send(embed=embed)
 
+    current_video.mark_as_played()
+
     await __play(current_source)
 
 

@@ -4,6 +4,8 @@ import asyncio
 
 from typing import Optional
 
+from datetime import datetime
+
 from talala import yt_utils
 from talala.playlist import Playlist
 from talala.playlist import Video
@@ -58,5 +60,8 @@ class MusicQueue:
         self.next_source = yt_utils.get_source_from_url(self.next_video.url)
 
     def __load_queue(self) -> None:
-        self.__queue = random.sample(self.playlist.items, len(self.playlist.items))
+
+        items: list[Video] = self.playlist.items
+
+        self.__queue = random.choices(items, k=len(self.playlist.items), weights=self.playlist.item_weights())
         print("Shuffling queue")
