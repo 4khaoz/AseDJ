@@ -15,7 +15,7 @@ class Video:
     url: str
     thumbnail: str
     duration: int
-    last_played_at: Optional[datetime]
+    last_played_at: Optional[datetime] = None
 
     def mark_as_played(self):
         """"""
