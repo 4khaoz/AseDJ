@@ -71,7 +71,7 @@ class Playlist:
     def item_weights(self) -> list[float]:
         now = datetime.now()
 
-        unmapped_weights: list[int] = [(now - item.last_played_at).total_seconds() if item is not None else 0 for item in self.items]
+        unmapped_weights: list[int] = [(now - item.last_played_at).total_seconds() if item.last_played_at is not None else 0 for item in self.items]
 
         old_max = max(unmapped_weights)
         old_min = min(unmapped_weights)
