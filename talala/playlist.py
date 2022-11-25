@@ -68,20 +68,6 @@ class Playlist:
         """
         return item in self.items
 
-    def item_weights(self) -> list[float]:
-        now = datetime.now()
-
-        unmapped_weights: list[int] = [(now - item.last_played_at).total_seconds() if item.last_played_at is not None else 0 for item in self.items]
-
-        old_max = max(unmapped_weights)
-        old_min = min(unmapped_weights)
-        old_range = old_max - old_min
-        new_min = 0.1
-        new_max = 1.0
-        new_range = new_max - new_min
-
-        return [(((old_weight - old_min) * new_range) / old_range + new_min) if old_range > 0 else 0.1 for old_weight in unmapped_weights]
-
     def save(self) -> None:
         """
         Save playlist-data to JSON-File
