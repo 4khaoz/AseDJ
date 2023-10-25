@@ -1,5 +1,6 @@
 # Ignore IDEA folder
 .idea
+.vscode
 
 # Ignore pycache folders
 **/__pycache__/
