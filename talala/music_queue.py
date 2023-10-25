@@ -32,7 +32,8 @@ class MusicQueue:
     def playlist_item_weights(self) -> list[float]:
         now = datetime.now()
 
-        unmapped_weights: list[int] = [(now - item.last_played_at).total_seconds() if item.last_played_at is not None else 0 for item in self.playlist_items]
+        unmapped_weights: list[int] = [(now - item.last_played_at).total_seconds(
+        ) if item.last_played_at is not None else 0 for item in self.playlist_items]
 
         old_max = max(unmapped_weights)
         old_min = min(unmapped_weights)
@@ -61,22 +62,33 @@ class MusicQueue:
     def next_item(self, video: Video = None) -> tuple[Video, str]:
         if video:
             self.current_video = video
-            self.current_source = yt_utils.get_source_from_url(self.current_video.url)
+            self.current_source = yt_utils.get_source_from_url(
+                self.current_video.url)
         elif self.next_video:
             self.current_video = self.next_video
             self.current_source = self.next_source
         else:
-            self.current_video = self.dequeue_item()     # Python conditional operator
-            self.current_source = yt_utils.get_source_from_url(self.current_video.url)
+            self.current_video, self.current_source = self.__load_source()
 
         self.event_loop.create_task(self.__preload_next_video())
 
         return self.current_video, self.current_source
 
     async def __preload_next_video(self) -> None:
-        self.next_video = self.dequeue_item()
-        self.next_source = yt_utils.get_source_from_url(self.next_video.url)
+        self.next_video, self.next_source = self.__load_source()
+
+    def __load_source(self) -> Optional[tuple[Video, str]]:
+        while True:
+            next_item = self.dequeue_item()
+            if next_item is None:
+                return None
+            try:
+                return next_item, yt_utils.get_source_from_url(next_item.url)
+            except yt_utils.YTLookupError:
+                # Unable to retrieve information for this item.
+                continue
 
     def __load_queue(self) -> None:
         print("Shuffling queue")
-        self.__queue = weighted_shuffle(self.playlist_items, self.playlist_item_weights)
+        self.__queue = weighted_shuffle(
+            self.playlist_items, self.playlist_item_weights)
