@@ -16,6 +16,11 @@ from talala.playlist import Video
 
 load_dotenv()
 
+FFMPEG_OPTS = {
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+    'options': '-vn'
+}
+
 intents = discord.Intents.default()
 
 # Bot Instance
@@ -225,7 +230,8 @@ async def __setup_voice_client():
     if voice_channel is None:
         return
 
-    voice_client = discord.utils.get(bot.voice_clients, guild=voice_channel.guild)
+    voice_client = discord.utils.get(
+        bot.voice_clients, guild=voice_channel.guild)
 
     # First check if there's a voice client already connected to a channel in the server.
     # If not, create a new voice client.
@@ -250,7 +256,8 @@ def __setup_media_player():
 
     media_player = vlc.MediaPlayer()
     event_manager = media_player.event_manager()
-    event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, __video_finished)
+    event_manager.event_attach(
+        vlc.EventType.MediaPlayerEndReached, __video_finished)
 
 
 async def __play_next(video: Video = None):
@@ -292,12 +299,6 @@ async def __play(media: str):
 
 
 async def __play_voice_client(media: str):
-
-    FFMPEG_OPTS = {
-        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-        'options': '-vn'
-    }
-
     if not voice_client.is_connected():
         await __setup_voice_client()
 
@@ -309,7 +310,8 @@ async def __play_voice_client(media: str):
         discord.FFmpegPCMAudio(media, **FFMPEG_OPTS),
         after=lambda e: print("Voice Client finished playing song")
     )
-    voice_client.source = discord.PCMVolumeTransformer(voice_client.source, volume=0.5)
+    voice_client.source = discord.PCMVolumeTransformer(
+        voice_client.source, volume=0.5)
 
 
 def __video_finished(event):
