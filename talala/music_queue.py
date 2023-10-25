@@ -84,7 +84,7 @@ class MusicQueue:
                 return None
             try:
                 return next_item, yt_utils.get_source_from_url(next_item.url)
-            except yt_utils.YTLookupError:
+            except:
                 # Unable to retrieve information for this item.
                 continue
 
