@@ -5,6 +5,7 @@
 # Ignore pycache folders
 **/__pycache__/
 
+data/
 # Ignore playlist.json
 playlist.json
 
