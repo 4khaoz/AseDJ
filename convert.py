@@ -13,7 +13,7 @@ from talala.db import DB
 def load_playlist_items() -> list[dict]:
     items = []
     known_ids = set()
-    with open("./playlist.json", mode="r", encoding="utf8") as f:
+    with open("playlist.json", mode="r", encoding="utf8") as f:
         for item in json.load(f):
             if not item["id"]:
                 continue
@@ -35,13 +35,14 @@ def load_playlist_items() -> list[dict]:
 
 def main():
     downloaded_items = []
-    track_download_dir = "./data/tracks"
+    track_download_dir = "data/tracks"
     with yt_utils.downloader(out_dir=track_download_dir) as ytd:
         for item in load_playlist_items():
             if os.path.exists(
                 os.path.join(track_download_dir, f"{item.youtube_id}.flac")
             ):
                 print("Already downloaded", item.youtube_id)
+                downloaded_items.append(item)
                 continue
             try:
                 ytd.download(item.url)

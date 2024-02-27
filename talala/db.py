@@ -5,8 +5,8 @@ from talala.playlist import Playlist, Video
 
 class DB:
 
-    db_file: str = "./data/app.db"
-    schema_file: str = "./db/structure.sql"
+    db_file: str = "data/app.db"
+    schema_file: str = "db/structure.sql"
 
     def __init__(self):
         self.__connection: sqlite3.Connection = None
@@ -66,8 +66,8 @@ class DB:
         else:
             sql_on_conflict = " "
 
-        sql = f"""INSERT INTO tracks(youtube_id, url, title, duration, thumbnail_url) VALUES (?, ?, ?, ?, ?){sql_on_conflict}RETURNING id"""
-        res = cur.executemany(
+        sql = f"INSERT INTO tracks(youtube_id, url, title, duration, thumbnail_url) VALUES (?, ?, ?, ?, ?){sql_on_conflict}"
+        cur.executemany(
             sql,
             [
                 (
@@ -80,8 +80,7 @@ class DB:
                 for track in tracks
             ],
         )
-        for track_id, track in zip(res.fetchall(), tracks):
-            track.id = track_id
+        self.connection.commit()
         return tracks
 
     def __connect(self):
