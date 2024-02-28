@@ -87,8 +87,8 @@ async def search(interaction: discord.Interaction, term: str):
         )
         return
     content = "The following tracks match the search term:\n\n"
-    for track in tracks:
-        content += f"* [{track.title}](<{track.url}>)\n"
+    content += "\n".join([f"* [{track.title}](<{track.url}>)" for track in tracks])
+
     await interaction.response.send_message(content=content)
 
 
