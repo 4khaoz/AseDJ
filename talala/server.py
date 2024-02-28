@@ -1,6 +1,5 @@
 from typing import Union
 
-import asyncio
 import os.path
 
 import talala.yt_utils
@@ -20,15 +19,20 @@ class Server:
 
     def __init__(self):
         self.db = None
-        self.event_loop: asyncio.AbstractEventLoop = None
         self.playlist: Playlist = None
         self.music_queue: MusicQueue = None
+        self.__closed: bool = False
 
-    async def start(self, event_loop: asyncio.AbstractEventLoop):
+    async def start(self):
         self.db = self.__setup_db()
-        self.event_loop = event_loop
         self.playlist = self.db.load_playlist()
         self.music_queue = MusicQueue(self.playlist)
+
+    async def close(self):
+        if self.__closed:
+            return
+        self.db.close()
+        self.__closed = True
 
     async def add_track(self, track: Union[Video, str]) -> Video:
         """Adds the track to the playlist."""
@@ -43,7 +47,7 @@ class Server:
         if self.playlist.item_exists(track):
             raise AddTrackError("video already in playlist")
 
-        talala.yt_utils.download_video(track.url, out_dir=track_download_dir)
+        talala.yt_utils.download_audio(track.url, out_dir=track_download_dir)
 
         self.playlist.add_item(track)
         self.music_queue.enqueue_item(track)
@@ -54,6 +58,10 @@ class Server:
         """Retrieves the next track in the queue."""
         track = self.music_queue.dequeue_item()
         return (track, os.path.join(track_download_dir, f"{track.youtube_id}.flac"))
+
+    def search_track(self, term: str) -> list[Video]:
+        """Returns a list of tracks that match the search term"""
+        return self.db.search_track(term)
 
     def __setup_db(self) -> DB:
         db = DB()

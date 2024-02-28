@@ -83,6 +83,24 @@ class DB:
         self.connection.commit()
         return tracks
 
+    def search_track(self, term: str) -> list[Video]:
+        cur = self.connection.cursor()
+        res = cur.execute(
+            "SELECT youtube_id, url, title, duration, thumbnail_url FROM tracks WHERE title LIKE ? ORDER BY title",
+            f"%{term}%",
+        )
+
+        return [
+            Video(
+                youtube_id=youtube_id,
+                url=url,
+                title=title,
+                duration=duration,
+                thumbnail_url=thumbnail_url,
+            )
+            for (youtube_id, url, title, duration, thumbnail_url) in res.fetchall()
+        ]
+
     def __connect(self):
         connection = sqlite3.connect(self.db_file)
         connection.execute("PRAGMA foreign_keys = on")

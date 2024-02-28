@@ -61,7 +61,7 @@ def get_video_data_with_ytdl(query: str) -> Video:
     )
 
 
-def download_video(url: str, out_dir: str):
+def download_audio(url: str, out_dir: str):
     with downloader(out_dir=out_dir) as ytd:
         ytd.download(url)
 

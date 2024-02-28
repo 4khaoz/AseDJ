@@ -1,113 +1,63 @@
 #!/usr/bin/env python3
 
-from typing import Optional
+from typing import Final, Optional
 
-import json
+import asyncio
 import os
 
 import discord
-from discord.ext import commands
 from dotenv import load_dotenv
 import vlc
 
-from talala import yt_utils
 from talala.server import Server, AddTrackError
-from talala.playlist import Playlist
-from talala.playlist import Video
 
 load_dotenv()
 
-FFMPEG_OPTS = {
-    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
-    "options": "-vn",
-}
+DISCORD_TOKEN: Final[str] = os.getenv("TOKEN")
+DISCORD_CHANNEL: Final[ſtr] = os.getenv("CHANNEL")
 
-intents = discord.Intents.default()
+# Currently we're only interested guild attributes, events and messages:
+# https://discordpy.readthedocs.io/en/stable/api.html#discord.Intents.guild_messages
+# https://discordpy.readthedocs.io/en/stable/api.html#discord.Intents.guilds
+intents = discord.Intents(guild_messages=True, guild=True)
 
-# Bot Instance
-bot: commands.Bot = commands.Bot(
-    command_prefix=os.getenv("COMMAND_PREFIX", default="$"), intents=intents
-)
+# Discord
+discord_client = discord.Client(intents=intents)
+command_tree = discord.app_commands.CommandTree(discord_client)
 
 # Variables
 server: Server = Server()
 media_player: Optional[vlc.MediaPlayer] = None
-event_manager: Optional[vlc.EventManager] = None
 text_channel: Optional[discord.abc.GuildChannel] = None
-voice_channel: Optional[discord.VoiceChannel] = None
-voice_client: Optional[discord.VoiceClient] = None
 
 
 #
-# Bot Events
+# Discord events
 #
-@bot.event
+@discord_client.event
 async def on_ready():
     print("Logged in")
 
-    global bot
     global text_channel
-    global voice_channel
-    global server
 
-    await bot.tree.sync()
+    await command_tree.sync()
 
     # Get text channel for event logging
-    event_channel_id = os.getenv("CHANNEL")
+    event_channel_id = DISCORD_CHANNEL
     if event_channel_id:
-        text_channel = bot.get_channel(int(event_channel_id))
+        text_channel = discord_client.get_channel(int(event_channel_id))
     else:
         print("Will not output events on Discord. No text channel ID specified.")
 
-    # Get voice channel for music streaming
-    voice_channel_id = os.getenv("VOICE")
-    if voice_channel_id:
-        voice_channel = bot.get_channel(int(voice_channel_id))
-    else:
-        print("Will not stream music on Discord. No voice channel ID specified.")
-
-    __setup_media_player()
-    await __setup_voice_client()
-
-    await server.start(event_loop=bot.loop)
-
-    await __play_next()
-
-
-@bot.event
-async def on_reaction_add(reaction, user):
-    if reaction.message.author != bot.user:
-        # Ignore messages written by other users
-        return
-
-    if reaction.me:
-        # Ignore Reactions made by bot
-        return
-
-    # TODO:
-    # 1. add-cmd lists multiple videos -> select correct video through reaction?
-    # 2. after adding video -> react to revert action?
+    await __media_player_next()
 
 
 #
-# Bot Commands
+# Discord commands
 #
-@bot.tree.command()
-async def connect(interaction: discord.Interaction):
-    """
-    Manually connect bot to voice channel if e.g. disconnected
-    """
-    await __setup_voice_client()
-    await interaction.response.send_message(content="Connected!", ephemeral=True)
-
-
-@bot.tree.command(description="Adds a song to the playlist")
+@command_tree.command(description="Adds a song to the playlist")
 async def add(interaction: discord.Interaction, url: str):
-    """
-    Add video to playlist
-    @param      interaction     Discord Text-Channel in which command was used
-    @param      url     Youtube-Link or Title (YT searches automatically and returns first video found)
-    """
+    """Add video to playlist"""
 
     await interaction.response.send_message(
         content=f"Searching video: <{url}>", ephemeral=True
@@ -127,81 +77,72 @@ async def add(interaction: discord.Interaction, url: str):
     await interaction.followup.send(content=None, embed=embed)
 
 
-@bot.tree.command()
-async def play(interaction: discord.Interaction):
-    """
-    Manual play command
-    """
-    await __play_next()
-    await interaction.response.send_message(content=f"Now playing.", ephemeral=True)
+@command_tree.command()
+async def search(interaction: discord.Interaction, term: str):
+    """Search tracks that match the search term"""
+    tracks = server.search_track(term)
+    if len(tracks) == 0:
+        await interaction.response.send_message(
+            content=f"No tracks found for search term {term}", ephemeral=True
+        )
+        return
+    content = "The following tracks match the search term:\n\n"
+    for track in tracks:
+        content += f"* [{track.title}]({track.url})"
+    await interaction.response.send_message(content=content, ephemeral=True)
 
 
-@bot.tree.command()
+@command_tree.command()
+async def skip(interaction: discord.Interaction):
+    """Skip current track"""
+    await __media_player_next()
+    await interaction.response.send_message(content="Skipped.", ephemeral=True)
+
+
+@command_tree.command()
 async def stop(interaction: discord.Interaction):
-    """
-    Manual stop command
-    """
-    global media_player
-    global voice_client
-    media_player.stop()
-    voice_client.stop()
-    await interaction.response.send_message(content=f"Stopped playing.", ephemeral=True)
+    """Stop current track"""
+    await __media_player_stop()
+    await interaction.response.send_message(content="Stopped.", ephemeral=True)
 
 
-@bot.tree.command()
+@command_tree.command()
 async def volume(interaction: discord.Interaction, level: int):
+    """Change playback volume"""
     level = min(100, max(0, level))
     media_player.audio_set_volume(level)
     await interaction.response.send_message(
-        content=f"Volume set to {level}.", ephemeral=True
+        content=f"Volume set to {level}%.", ephemeral=True
     )
 
 
-async def __setup_voice_client():
-    """
-    Connect Bot to music voice channel
-    """
-    global voice_client
-    global voice_channel
-
-    if voice_channel is None:
-        return
-
-    voice_client = discord.utils.get(bot.voice_clients, guild=voice_channel.guild)
-
-    # First check if there's a voice client already connected to a channel in the server.
-    # If not, create a new voice client.
-    if voice_client is None or not voice_client.is_connected():
-        voice_client = await voice_channel.connect()
-
-    # Already connected and in the right channel
-    if voice_client.channel == voice_channel:
-        return
-
-    # Move Voice
-    if voice_client.is_connected():
-        await voice_client.move_to(voice_channel)
-
-
-def __setup_media_player():
-    """
-    Setup a new VLC media player instance and event manager
-    """
-    global media_player
-    global event_manager
-
-    media_player = vlc.MediaPlayer()
-    event_manager = media_player.event_manager()
+async def __setup_media_player():
+    """Setup a new VLC media player instance and event manager"""
+    __media_player = vlc.MediaPlayer()
+    event_manager = __media_player.event_manager()
     event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, __video_finished)
 
+    return __media_player
 
-async def __play_next():
-    """
-    Plays the next video
-    @param      video       If video is not given, get a random one
-    """
+
+async def __media_player_stop():
+    """Stops the current track"""
+    if media_player.is_playing():
+        media_player.stop()
+
+
+async def __media_player_next():
+    """Plays the next track"""
 
     current_video, current_source = server.next_track()
+
+    await __media_player_stop()
+
+    # It'll interrupt the currently playing music
+    media_player.set_mrl(current_source)
+    media_player.play()
+
+    current_video.mark_as_played()
 
     # Send Embed
     if text_channel:
@@ -212,54 +153,24 @@ async def __play_next():
         embed.set_thumbnail(url=current_video.thumbnail_url)
         await text_channel.send(embed=embed)
 
-    current_video.mark_as_played()
-
-    await __play(current_source)
-
-
-async def __play(media: str):
-    """
-    @param      media       Youtube Audio Source URL
-    """
-    global media_player
-    global event_manager
-    global voice_client
-
-    if voice_client:
-        await __play_voice_client(media)
-
-    # It'll interrupt the currently playing music
-    media_player.set_mrl(media)
-    media_player.play()
-
-
-async def __play_voice_client(media: str):
-    if not voice_client.is_connected():
-        await __setup_voice_client()
-
-    # TODO: We should wait for the music to stop, but for now we'll cut it off.
-    if voice_client.is_playing():
-        voice_client.stop()
-
-    voice_client.play(
-        discord.FFmpegPCMAudio(media, **FFMPEG_OPTS),
-        after=lambda e: print("Voice Client finished playing song"),
-    )
-    voice_client.source = discord.PCMVolumeTransformer(voice_client.source, volume=0.5)
-
 
 def __video_finished(event):
     print(f"Finished {event}")
 
-    bot.loop.create_task(__play_next())
+    discord_client.loop.create_task(__media_player_next())
 
 
-# Start bot
 try:
-    bot.run(os.getenv("TOKEN"))
+    media_player = __setup_media_player()
+    asyncio.run(asyncio.gather(server.start(), discord_client.start(DISCORD_TOKEN)))
 finally:
     # Close the VLC media player
     print("Cleaning up...")
+
+    if server:
+        asyncio.run(server.close())
+
+    asyncio.run(discord_client.close())
 
     if media_player:
         media_player.release()
