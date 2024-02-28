@@ -87,7 +87,7 @@ class DB:
         cur = self.connection.cursor()
         res = cur.execute(
             "SELECT youtube_id, url, title, duration, thumbnail_url FROM tracks WHERE title LIKE ? ORDER BY title",
-            f"%{term}%",
+            (f"%{term}%",),
         )
 
         return [

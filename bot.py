@@ -88,8 +88,8 @@ async def search(interaction: discord.Interaction, term: str):
         return
     content = "The following tracks match the search term:\n\n"
     for track in tracks:
-        content += f"* [{track.title}]({track.url})"
-    await interaction.response.send_message(content=content, ephemeral=True)
+        content += f"* [{track.title}](<{track.url}>)\n"
+    await interaction.response.send_message(content=content)
 
 
 @command_tree.command()
@@ -165,8 +165,8 @@ async def main():
 
     media_player = __setup_media_player()
     await asyncio.gather(
-        asyncio.create_task(server.start()),
-        asyncio.create_task(discord_client.start(DISCORD_TOKEN)),
+        server.start(),
+        discord_client.start(DISCORD_TOKEN),
     )
 
 
