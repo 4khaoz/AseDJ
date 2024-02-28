@@ -31,7 +31,8 @@ class Server:
     async def close(self):
         if self.__closed:
             return
-        self.db.close()
+        if self.db:
+            self.db.close()
         self.__closed = True
 
     async def add_track(self, track: Union[Video, str]) -> Video:

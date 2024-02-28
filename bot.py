@@ -116,7 +116,7 @@ async def volume(interaction: discord.Interaction, level: int):
     )
 
 
-async def __setup_media_player():
+def __setup_media_player():
     """Setup a new VLC media player instance and event manager"""
     __media_player = vlc.MediaPlayer()
     event_manager = __media_player.event_manager()
@@ -162,7 +162,12 @@ def __video_finished(event):
 
 try:
     media_player = __setup_media_player()
-    asyncio.run(asyncio.gather(server.start(), discord_client.start(DISCORD_TOKEN)))
+    asyncio.run(
+        asyncio.gather(
+            asyncio.create_task(server.start()),
+            asyncio.create_task(discord_client.start(DISCORD_TOKEN)),
+        )
+    )
 finally:
     # Close the VLC media player
     print("Cleaning up...")
