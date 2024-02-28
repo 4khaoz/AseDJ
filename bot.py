@@ -19,7 +19,7 @@ DISCORD_CHANNEL: Final[ſtr] = os.getenv("CHANNEL")
 # Currently we're only interested guild attributes, events and messages:
 # https://discordpy.readthedocs.io/en/stable/api.html#discord.Intents.guild_messages
 # https://discordpy.readthedocs.io/en/stable/api.html#discord.Intents.guilds
-intents = discord.Intents(guild_messages=True, guild=True)
+intents = discord.Intents(guild_messages=True, guilds=True)
 
 # Discord
 discord_client = discord.Client(intents=intents)
