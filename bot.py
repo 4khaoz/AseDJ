@@ -160,14 +160,18 @@ def __video_finished(event):
     discord_client.loop.create_task(__media_player_next())
 
 
-try:
+async def main():
+    global media_player
+
     media_player = __setup_media_player()
-    asyncio.run(
-        asyncio.gather(
-            asyncio.create_task(server.start()),
-            asyncio.create_task(discord_client.start(DISCORD_TOKEN)),
-        )
+    await asyncio.gather(
+        asyncio.create_task(server.start()),
+        asyncio.create_task(discord_client.start(DISCORD_TOKEN)),
     )
+
+
+try:
+    asyncio.run(main())
 finally:
     # Close the VLC media player
     print("Cleaning up...")
