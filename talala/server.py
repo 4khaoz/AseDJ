@@ -35,21 +35,26 @@ class Server:
             self.db.close()
         self.__closed = True
 
+    async def lookup_track(self, url: str) -> Video:
+        """Looks a track up by URL"""
+        try:
+            return talala.yt_utils.get_video_data_with_ytdl(url)
+        except talala.yt_utils.YTLookupError as error:
+            raise AddTrackError("video not found") from error
+        except talala.yt_utils.DurationPolicyError as error:
+            raise AddTrackError("video is too long") from error
+
     async def add_track(self, track: Union[Video, str]) -> Video:
         """Adds the track to the playlist."""
         if isinstance(track, str):
-            try:
-                track = talala.yt_utils.get_video_data_with_ytdl(track)
-            except talala.yt_utils.YTLookupError as error:
-                raise AddTrackError("video not found") from error
-            except talala.yt_utils.DurationPolicyError as error:
-                raise AddTrackError("video is too long") from error
+            track = await self.lookup_track(track)
 
         if self.playlist.item_exists(track):
             raise AddTrackError("video already in playlist")
 
         talala.yt_utils.download_audio(track.url, out_dir=track_download_dir)
 
+        self.db.insert_track(track)
         self.playlist.add_item(track)
         self.music_queue.enqueue_item(track)
 

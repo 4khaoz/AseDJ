@@ -9,6 +9,7 @@ import discord
 from dotenv import load_dotenv
 import vlc
 
+from talala.playlist import Video
 from talala.server import Server, AddTrackError
 
 load_dotenv()
@@ -31,6 +32,55 @@ media_player: Optional[vlc.MediaPlayer] = None
 text_channel: Optional[discord.abc.GuildChannel] = None
 
 
+class AddTrackView(discord.ui.View):
+
+    def __init__(self, track: Video, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.track = track
+
+    @discord.ui.button(
+        label="Accept",
+        custom_id="accept_track",
+        style=discord.enums.ButtonStyle.success,
+    )
+    async def track_accepted(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        self.__disable()
+
+        await interaction.response.defer()
+        try:
+            track = await server.add_track(self.track)
+            print(track.youtube_id)
+        except AddTrackError as error:
+            await interaction.followup.send(content=error, ephemeral=True)
+            return
+
+        # Send Embed
+        embed = discord.Embed(
+            title=f"Added {track.title} to playlist", description=f"{track.url}"
+        )
+        embed.set_thumbnail(url=track.thumbnail_url)
+        await interaction.followup.send(content=None, embed=embed)
+
+    @discord.ui.button(
+        label="Reject", custom_id="reject_track", style=discord.enums.ButtonStyle.danger
+    )
+    async def track_rejected(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        self.__disable()
+        await interaction.response.send_message(
+            content="Track rejected", ephemeral=True
+        )
+
+    def __disable(self):
+        for child in self.children:
+            if isinstance(child, discord.ui.Button):
+                child.disabled = True
+        self.stop()
+
+
 #
 # Discord events
 #
@@ -39,6 +89,7 @@ async def on_ready():
     print("Logged in")
 
     global text_channel
+    global media_player
 
     await command_tree.sync()
 
@@ -49,6 +100,10 @@ async def on_ready():
     else:
         print("Will not output events on Discord. No text channel ID specified.")
 
+    media_player = __setup_media_player()
+
+    await server.start()
+
     await __media_player_next()
 
 
@@ -58,23 +113,26 @@ async def on_ready():
 @command_tree.command(description="Adds a song to the playlist")
 async def add(interaction: discord.Interaction, url: str):
     """Add video to playlist"""
-
-    await interaction.response.send_message(
-        content=f"Searching video: <{url}>", ephemeral=True
-    )
-
+    await interaction.response.defer()
     try:
-        video = await server.add_track(url)
+        track = await server.lookup_track(url)
     except AddTrackError as error:
         await interaction.followup.send(content=error, ephemeral=True)
         return
 
-    # Send Embed
     embed = discord.Embed(
-        title=f"Added {video.title} to playlist", description=f"{video.url}"
+        title=f"Track found: {track.title}.\n\nAccept/reject?",
+        description=f"{track.url}",
     )
-    embed.set_thumbnail(url=video.thumbnail_url)
-    await interaction.followup.send(content=None, embed=embed)
+    embed.set_thumbnail(url=track.thumbnail_url)
+
+    view: AddTrackView = AddTrackView(track=track)
+
+    interaction.extras["track"] = track
+
+    await interaction.followup.send(
+        content=None, embed=embed, view=view, ephemeral=True
+    )
 
 
 @command_tree.command()
@@ -160,27 +218,5 @@ def __video_finished(event):
     discord_client.loop.create_task(__media_player_next())
 
 
-async def main():
-    global media_player
-
-    try:
-        media_player = __setup_media_player()
-        await asyncio.gather(
-            server.start(),
-            discord_client.start(DISCORD_TOKEN),
-        )
-    finally:
-        # Close the VLC media player
-        print("Cleaning up...")
-
-        if server:
-            await server.close()
-
-        await discord_client.close()
-
-        if media_player:
-            media_player.release()
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(discord_client.run(DISCORD_TOKEN))
