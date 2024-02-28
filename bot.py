@@ -46,7 +46,7 @@ class AddTrackView(discord.ui.View):
     async def track_accepted(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        await self.__disable(interaction=interaction)
+        self.stop()
 
         await interaction.response.defer()
         try:
@@ -69,17 +69,10 @@ class AddTrackView(discord.ui.View):
     async def track_rejected(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        await self.__disable(interaction=interaction)
+        self.stop()
         await interaction.response.send_message(
             content="Track rejected", ephemeral=True
         )
-
-    async def __disable(self, interaction: discord.Interaction):
-        self.stop()
-        for child in self.children:
-            if isinstance(child, discord.ui.Button):
-                child.disabled = True
-        await interaction.message.edit(view=self)
 
 
 #
