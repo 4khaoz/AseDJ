@@ -16,7 +16,7 @@ load_dotenv()
 DISCORD_TOKEN: Final[str] = os.getenv("TOKEN")
 DISCORD_CHANNEL: Final[ſtr] = os.getenv("CHANNEL")
 
-# Currently we're only interested guild attributes, events and messages:
+# Currently we're only interested in guild attributes, events and messages:
 # https://discordpy.readthedocs.io/en/stable/api.html#discord.Intents.guild_messages
 # https://discordpy.readthedocs.io/en/stable/api.html#discord.Intents.guilds
 intents = discord.Intents(guild_messages=True, guilds=True)
@@ -163,23 +163,24 @@ def __video_finished(event):
 async def main():
     global media_player
 
-    media_player = __setup_media_player()
-    await asyncio.gather(
-        server.start(),
-        discord_client.start(DISCORD_TOKEN),
-    )
+    try:
+        media_player = __setup_media_player()
+        await asyncio.gather(
+            server.start(),
+            discord_client.start(DISCORD_TOKEN),
+        )
+    finally:
+        # Close the VLC media player
+        print("Cleaning up...")
+
+        if server:
+            await server.close()
+
+        await discord_client.close()
+
+        if media_player:
+            media_player.release()
 
 
-try:
+if __name__ == "__main__":
     asyncio.run(main())
-finally:
-    # Close the VLC media player
-    print("Cleaning up...")
-
-    if server:
-        asyncio.run(server.close())
-
-    asyncio.run(discord_client.close())
-
-    if media_player:
-        media_player.release()
